@@ -228,6 +228,50 @@ The first run with `--full` populates the archive end-to-end. Subsequent
 runs only fetch messages with ids higher than the latest one already in
 the database, so they finish in seconds.
 
+### Production schedule (GitHub Actions)
+
+**Use GitHub Actions, not Vercel Cron.** The sync is a long-running Node
+script (GramJS + Sharp + R2 uploads). Vercel serverless functions cap out
+at 10–300 seconds and are a poor fit for multi-photo downloads.
+
+Observed resource use on a Mac (incremental, nothing new to import):
+
+| Run type | Posts / media | Wall time | Peak RAM |
+| -------- | ------------- | --------- | -------- |
+| Incremental (no-op) | 0 / 0 | ~3 s | ~170 MB |
+| Incremental (1 new post) | 1 / 1 | seconds | similar |
+| Full backfill | 100 / 643 | minutes | higher during downloads |
+
+Scheduled incremental runs stay well within GitHub’s default runner limits
+(7 GB RAM, 45-minute job timeout in the workflow).
+
+1. **Add repository secrets** (GitHub → Settings → Secrets and variables →
+   Actions → New repository secret). Copy the same values you use locally
+   and on Vercel:
+
+   - `DATABASE_URL`, `DIRECT_URL` (Neon: **must** set `DIRECT_URL` to the
+     non-pooled URL for Prisma transactions)
+   - `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION`
+   - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+     `R2_BUCKET`, `R2_PUBLIC_URL`
+
+2. **Push** `.github/workflows/telegram-sync.yml` (included in this repo).
+   It runs every **20 minutes** incrementally.
+
+3. **Manual runs:** Actions → “Telegram sync” → Run workflow. Leave
+   `full` unchecked for normal operation. Enable `full` only for repairs
+   (uses a 3-hour timeout; same command as
+   `pnpm run telegram:sync -- --full --limit 1000`).
+
+4. **Failures:** The workflow exits non-zero when any post errors (e.g.
+   Telegram `Timeout` on `upload.GetFile`, transient Neon transaction
+   errors). The next scheduled run retries; for stubborn posts, run
+   workflow manually once.
+
+5. **Website freshness:** The site uses ISR (`revalidate = 300`), so new
+   posts appear on [povet.vercel.app](https://povet.vercel.app) within about
+   five minutes after a successful sync — no redeploy needed.
+
 Photographs land wherever the storage backend (`lib/storage.ts`) is
 configured to put them. By default — no R2 credentials in `.env` — they
 go to `public/media/` (gitignored). With the five `R2_*` variables set,

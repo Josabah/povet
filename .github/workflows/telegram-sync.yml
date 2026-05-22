@@ -1,0 +1,81 @@
+# Incremental Telegram → Neon + R2 sync.
+#
+# Scheduled runs use the default incremental mode (new messages only).
+# Manual runs can opt into --full for backfills (longer timeout).
+#
+# Required GitHub repository secrets — copy from your local .env / Vercel:
+#   DATABASE_URL, DIRECT_URL
+#   TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_SESSION
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL
+# Optional variable (Repository → Settings → Secrets and variables → Actions → Variables):
+#   TELEGRAM_CHANNEL  (defaults to pov_et in code)
+
+name: Telegram sync
+
+on:
+  schedule:
+    # Every 20 minutes. Adjust if the channel posts less often.
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Full backfill (--full). Use only when repairing or re-importing."
+        type: boolean
+        default: false
+      limit:
+        description: "Max Telegram messages to scan"
+        type: number
+        default: 200
+
+concurrency:
+  group: telegram-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.full == true && 180 || 45 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run incremental sync
+        if: github.event_name == 'schedule' || inputs.full != true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          TELEGRAM_SESSION: ${{ secrets.TELEGRAM_SESSION }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+        run: pnpm run telegram:sync -- --limit ${{ github.event_name == 'workflow_dispatch' && inputs.limit || 200 }}
+
+      - name: Run full backfill
+        if: github.event_name == 'workflow_dispatch' && inputs.full == true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          TELEGRAM_SESSION: ${{ secrets.TELEGRAM_SESSION }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+        run: pnpm run telegram:sync -- --full --limit ${{ inputs.limit }}
