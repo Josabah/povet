@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { clampAspectRatio } from "@/lib/masonry";
+import { clampAspectRatio, clampExploreAspectRatio } from "@/lib/masonry";
 import type { Media } from "@/lib/types";
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   priority?: boolean;
   className?: string;
   imageClassName?: string;
+  /** Explore grid uses tighter ratio clamps for uniform rhythm. */
+  variant?: "archive" | "explore";
 };
 
 /**
@@ -19,13 +21,17 @@ export function MasonryFrame({
   sizes,
   priority = false,
   className = "",
-  imageClassName = "object-cover transition-transform duration-[1200ms] ease-quiet group-hover:scale-[1.01] motion-reduce:transform-none"
+  imageClassName = "object-cover transition-transform duration-[1200ms] ease-quiet group-hover:scale-[1.01] motion-reduce:transform-none",
+  variant = "archive"
 }: Props) {
+  const clamp =
+    variant === "explore" ? clampExploreAspectRatio : clampAspectRatio;
+
   return (
     <div
       className={`relative overflow-hidden bg-mist/30 ${className}`}
       style={{
-        aspectRatio: clampAspectRatio(media.aspectRatio),
+        aspectRatio: clamp(media.aspectRatio),
         backgroundColor: media.dominantColor
       }}
     >

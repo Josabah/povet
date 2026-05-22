@@ -32,6 +32,30 @@ export function formatShortDate(iso: string): string {
   return `${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
 }
 
+/** Quiet month-year for explore detail (e.g. "May 2026"). */
+export function formatMonthYear(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/**
+ * Treat the first line / clause of a caption as a "stack title". Keeps
+ * the sidebar quiet — long captions live on the full post page.
+ */
+export function captionAsStackTitle(
+  caption: string | null,
+  maxChars = 64
+): string | null {
+  if (!caption) return null;
+  const firstLine = caption.split(/\r?\n/)[0]?.trim();
+  if (!firstLine) return null;
+  if (firstLine.length <= maxChars) return firstLine;
+  const cut = firstLine.slice(0, maxChars);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 24 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+}
+
 export function formatContributor(
   username: string | null,
   displayName: string | null

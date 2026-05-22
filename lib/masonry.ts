@@ -10,7 +10,19 @@
 const MIN_RATIO = 0.72;
 const MAX_RATIO = 1.65;
 
+/** Tighter rhythm for explore — no tile dominates the wall. */
+const EXPLORE_MIN_RATIO = 0.75;
+const EXPLORE_MAX_RATIO = 1.42;
+
 export function clampAspectRatio(ratio: number): number {
   if (!Number.isFinite(ratio) || ratio <= 0) return 1;
   return Math.min(MAX_RATIO, Math.max(MIN_RATIO, ratio));
+}
+
+export function clampExploreAspectRatio(ratio: number): number {
+  if (!Number.isFinite(ratio) || ratio <= 0) return 1;
+  return Math.min(
+    EXPLORE_MAX_RATIO,
+    Math.max(EXPLORE_MIN_RATIO, ratio)
+  );
 }

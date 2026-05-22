@@ -36,3 +36,32 @@ export type Post = {
   dominantColor: string;
   media: Media[];
 };
+
+/** One photograph in the explore canvas — flattened from posts/stacks. */
+export type ExploreImage = {
+  /** Stable id: `{postSlug}-{orderIndex}` or Prisma media id. */
+  id: string;
+  media: Media;
+  postSlug: string;
+  caption: string | null;
+  location: string | null;
+  locationSlug: string | null;
+  contributorUsername: string | null;
+  contributorDisplayName: string | null;
+  publishedAt: string;
+  stackSize: number;
+  mediaIndex: number;
+};
+
+export type ExplorePage = {
+  images: ExploreImage[];
+  /** Cursor for the next request in the same direction; null if exhausted. */
+  nextCursor: string | null;
+};
+
+/** Initial window centred on a specific image, used by the reader on mount. */
+export type ExploreWindow = {
+  images: ExploreImage[];
+  cursorBefore: string | null;
+  cursorAfter: string | null;
+};

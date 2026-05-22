@@ -26,8 +26,17 @@ export default async function PhotographerPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-feed px-6 pb-24 md:px-10">
       <header className="pb-6 pt-8 md:pb-8 md:pt-10">
-        <h1 className="font-display text-display-lg font-light text-ink">
-          @{username}
+        <h1 className="flex items-baseline gap-2 font-display text-display-lg font-light text-ink">
+          <span>@{username}</span>
+          <a
+            href={`https://t.me/${username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-sans text-[0.9rem] leading-none text-slate-500 transition-colors duration-300 hover:text-ink"
+            aria-label={`Open @${username} on Telegram`}
+          >
+            ↗
+          </a>
         </h1>
       </header>
 

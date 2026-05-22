@@ -12,19 +12,27 @@ export function SiteHeader() {
           pov.et
         </Link>
 
-        <nav className="flex items-center gap-7 text-[0.85rem] text-slate-500">
+        <nav className="flex items-center text-[0.85rem] text-slate-500">
           <Link
-            href="/about"
+            href="/explore"
             className="transition-colors duration-300 hover:text-ink"
           >
-            About
+            Explore
           </Link>
-          <Link
-            href="/submit"
-            className="transition-colors duration-300 hover:text-ink"
-          >
-            Submit
-          </Link>
+          <div className="ml-10 flex items-center gap-5">
+            <Link
+              href="/about"
+              className="transition-colors duration-300 hover:text-ink"
+            >
+              About
+            </Link>
+            <Link
+              href="/submit"
+              className="transition-colors duration-300 hover:text-ink"
+            >
+              Submit
+            </Link>
+          </div>
         </nav>
       </div>
     </header>

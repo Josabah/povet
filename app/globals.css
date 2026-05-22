@@ -97,6 +97,252 @@
       margin-bottom: 1.75rem;
     }
   }
+
+  /*
+   * Explore — denser masonry, image-only tiles, uniform per-media ratios.
+   */
+  .explore-columns {
+    column-count: 2;
+    column-gap: 0.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .explore-columns {
+      column-gap: 0.625rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .explore-columns {
+      column-count: 3;
+      column-gap: 0.75rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .explore-columns {
+      column-count: 4;
+      column-gap: 0.875rem;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .explore-columns {
+      column-count: 5;
+      column-gap: 1rem;
+    }
+  }
+
+  .explore-columns--compact {
+    column-count: 2;
+    column-gap: 0.375rem;
+  }
+
+  .explore-item {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .explore-item {
+      margin-bottom: 0.625rem;
+    }
+  }
+
+  /*
+   * Explore reader — hero owns the first viewport. On mobile the hero
+   * fills 100svh so the wall stays fully below the fold until the
+   * user scrolls. On desktop the hero takes ~92vh, leaving just the
+   * top edge of the wall peeking in as a soft scroll-affordance.
+   */
+  .explore-reader {
+    /* Cap on the hero image's visible height. */
+    --reader-max-h: 72svh;
+    background: theme("colors.paper");
+    /* Instant scroll only — `swapTo` snaps to top, no fast-airplane
+       smooth animation. */
+    scroll-behavior: auto;
+  }
+
+  @media (min-width: 768px) {
+    .explore-reader {
+      --reader-max-h: 76vh;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .explore-reader {
+      --reader-max-h: 78vh;
+    }
+  }
+
+  .explore-reader__hero {
+    display: flex;
+    /* Centred in both axes so the image + meta scale in place when
+       the viewport changes — never drifting into a corner. */
+    align-items: center;
+    justify-content: center;
+    padding: 3.25rem 1rem 1.5rem;
+    /* Mobile: the wall must not show until the user actively scrolls. */
+    min-height: 100svh;
+  }
+
+  @media (min-width: 768px) {
+    .explore-reader__hero {
+      padding: 3.5rem 2rem 2rem;
+      /* Desktop: leave a small slice of the wall visible as a hint. */
+      min-height: 92vh;
+    }
+  }
+
+  /*
+   * Mobile: column (image, then one-line meta). Desktop: row (image
+   * left, sidebar column right). The sidebar is fixed-ish width via
+   * clamp; the image gets the rest, capped by `--reader-max-h * --ar`
+   * so portraits never stretch.
+   */
+  .explore-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    width: 100%;
+    max-width: 1280px;
+  }
+
+  @media (min-width: 768px) {
+    .explore-hero {
+      flex-direction: row;
+      align-items: center;
+      gap: 2.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .explore-hero {
+      gap: 3.5rem;
+    }
+  }
+
+  .explore-hero__stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (min-width: 768px) {
+    .explore-hero__stage {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  .explore-hero__image {
+    width: 100%;
+    max-width: min(94vw, calc(var(--reader-max-h) * var(--ar)));
+    max-height: var(--reader-max-h);
+    margin-inline: auto;
+  }
+
+  @media (min-width: 768px) {
+    .explore-hero__image {
+      max-width: min(60vw, calc(var(--reader-max-h) * var(--ar)));
+    }
+  }
+
+  /* Subtle edge buttons — visible affordance for "click next or back"
+     without competing with the photograph. Dark on paper. */
+  .explore-hero__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    padding: 0.5rem 0.85rem;
+    font-family: var(--font-sans);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: theme("colors.slate.400");
+    transition: color 500ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .explore-hero__nav:hover {
+    color: theme("colors.ink");
+  }
+
+  .explore-hero__nav--prev {
+    left: 0.25rem;
+  }
+
+  .explore-hero__nav--next {
+    right: 0.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .explore-hero__nav {
+      padding: 0.65rem 1rem;
+      font-size: 1.65rem;
+    }
+
+    .explore-hero__nav--prev {
+      left: -0.5rem;
+    }
+
+    .explore-hero__nav--next {
+      right: -0.5rem;
+    }
+  }
+
+  /* Mobile one-line meta strip, width-aligned with the photograph so
+     the caption visually belongs to it. Hidden on md+ where the side
+     column takes over. */
+  .explore-hero__meta {
+    width: 100%;
+    max-width: min(94vw, calc(var(--reader-max-h) * var(--ar)));
+    margin-inline: auto;
+  }
+
+  /* Desktop side column — fixed-ish width, vertically centred against
+     the image. Hidden on mobile where the one-liner takes over. */
+  .explore-hero__sidebar {
+    flex: 0 0 auto;
+    width: clamp(18rem, 26vw, 22rem);
+    align-self: center;
+  }
+
+  /* Pull-quote: line-clamp so very long captions don't blow the
+     sidebar height past the hero. Reveal-on-hover is intentionally
+     not used here — we want the column to stay quiet. */
+  .explore-meta-side__quote {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: pre-line;
+  }
+
+  /*
+   * Wall — the /explore masonry below the hero. Reuses the same column
+   * layout as the standalone /explore page so the experience after
+   * scrolling past the hero is identical, image-only, no metadata.
+   */
+  .explore-reader__wall {
+    padding: 0.75rem 0.75rem 5rem;
+  }
+
+  @media (min-width: 640px) {
+    .explore-reader__wall {
+      padding: 1rem 1rem 6rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .explore-reader__wall {
+      padding: 1.25rem 1.25rem 7rem;
+    }
+  }
 }
 
 @layer utilities {
