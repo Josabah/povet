@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.env
+.env.local
+.DS_Store
+*.log
+.vercel
+.turbo
+tsconfig.tsbuildinfo
+/prisma/.env
+
+# Phase 4 sync writes synced photographs here. Locally we keep them on
+# disk; in production this will be replaced by Cloudflare R2 (Phase 5).
+/public/media/

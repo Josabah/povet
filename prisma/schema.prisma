@@ -1,0 +1,112 @@
+// pov.et — schema of record.
+//
+// This is the source of truth for the archive. Telegram is the ingestion
+// layer; the website is the presentation layer; this schema is what they
+// pivot around. Read ARCHITECTURE.md before evolving it.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Post — one logical submission. May contain 1–10 media.
+// ─────────────────────────────────────────────────────────────────────────────
+model Post {
+  id                     String     @id @default(cuid())
+  slug                   String     @unique
+  telegramMessageId      BigInt     @unique
+  mediaGroupId           String?
+  caption                String?
+  contributorUsername    String?
+  contributorDisplayName String?
+  locationId             String?
+  location               Location?  @relation(fields: [locationId], references: [id])
+  // Mirrors Telegram's reaction shape: [{ emoji, count }].
+  reactions              Json?
+  views                  Int        @default(0)
+  status                 PostStatus @default(PUBLISHED)
+  featured               Boolean    @default(false)
+  // Cached cover values so the feed can reserve layout space before any
+  // image bytes load. Pulled from media[0] at write time.
+  dominantColor          String?
+  aspectRatio            Float?
+  publishedAt            DateTime
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  media                  Media[]
+  moods                  PostMood[]
+
+  @@index([publishedAt(sort: Desc)])
+  @@index([contributorUsername])
+  @@index([locationId])
+  @@index([mediaGroupId])
+  @@index([status, publishedAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Media — one photograph inside a post.
+// ─────────────────────────────────────────────────────────────────────────────
+model Media {
+  id            String  @id @default(cuid())
+  postId        String
+  post          Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  imageUrl      String
+  thumbnailUrl  String
+  width         Int
+  height        Int
+  aspectRatio   Float
+  orderIndex    Int
+  // Blurhash string plus its pre-rendered tiny PNG (base64 data URL) for
+  // next/image's blurDataURL prop.
+  blurHash      String
+  blurDataURL   String  @db.Text
+  dominantColor String
+
+  @@index([postId, orderIndex])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Location — a named place. Locations are first-class citizens of the
+// archive; they become emotional maps in the UI.
+// ─────────────────────────────────────────────────────────────────────────────
+model Location {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
+  posts Post[]
+
+  @@index([name])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MoodTag / PostMood — extensible curation surface. Not used in V1 UI;
+// the schema exists so editorial tagging is additive in Phase 6.
+// ─────────────────────────────────────────────────────────────────────────────
+model MoodTag {
+  id    String     @id @default(cuid())
+  name  String
+  slug  String     @unique
+  posts PostMood[]
+}
+
+model PostMood {
+  postId String
+  moodId String
+  post   Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mood   MoodTag @relation(fields: [moodId], references: [id], onDelete: Cascade)
+
+  @@id([postId, moodId])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}

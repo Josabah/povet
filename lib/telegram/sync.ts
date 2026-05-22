@@ -1,0 +1,298 @@
+/**
+ * Telegram → Postgres sync.
+ *
+ *   1. Connect to Telegram as a delegated user.
+ *   2. Find the highest telegramMessageId we already have in Postgres.
+ *   3. Fetch new messages from the channel (up to a configurable cap).
+ *   4. Normalize media groups into logical posts (lib/telegram/groups.ts).
+ *   5. Download + process each photo (lib/telegram/media.ts) and persist
+ *      via the storage abstraction (lib/storage.ts).
+ *   6. Upsert Post + Location + Media rows in a single per-post
+ *      transaction.
+ *   7. Disconnect.
+ *
+ * The function is idempotent: running it twice in a row yields the same
+ * database state. Re-running over partially-synced posts replaces media
+ * for that post (we accept slight overwrites in exchange for simpler
+ * semantics).
+ */
+
+import { prisma } from "../db";
+import { slugify } from "../posts";
+import { getStorageBackend } from "../storage";
+import { parseCaption } from "./parser";
+import { groupMessages, type RawTelegramMessage } from "./groups";
+import { processAndStore } from "./media";
+import {
+  Api,
+  createTelegramClient,
+  readTelegramConfig
+} from "./client";
+
+type Logger = (message: string) => void;
+
+export type SyncOptions = {
+  /** Maximum number of messages to fetch per run. Default 200. */
+  limit?: number;
+  /**
+   * If true, fetch from the start of the channel even when posts already
+   * exist in the database. Useful for backfills.
+   */
+  full?: boolean;
+  log?: Logger;
+};
+
+export type SyncReport = {
+  fetchedMessages: number;
+  logicalPosts: number;
+  upsertedPosts: number;
+  uploadedMedia: number;
+  skipped: number;
+  errors: Array<{ anchorId: number; error: string }>;
+};
+
+export async function runSync(
+  options: SyncOptions = {}
+): Promise<SyncReport> {
+  if (!prisma) {
+    throw new Error(
+      "DATABASE_URL is not set. The Telegram sync writes directly to the database; configure DATABASE_URL first."
+    );
+  }
+
+  const cfg = readTelegramConfig();
+  if (!cfg.session) {
+    throw new Error(
+      "TELEGRAM_SESSION is empty. Run `pnpm run telegram:login` once to generate it."
+    );
+  }
+
+  const log = options.log ?? ((m: string) => console.log(m));
+  const limit = options.limit ?? 200;
+
+  const storage = getStorageBackend();
+  log(`[sync] storage: ${storage.describe()}`);
+  log(`[sync] connecting to Telegram (channel: @${cfg.channel})…`);
+  const client = await createTelegramClient(cfg);
+  await client.connect();
+
+  const report: SyncReport = {
+    fetchedMessages: 0,
+    logicalPosts: 0,
+    upsertedPosts: 0,
+    uploadedMedia: 0,
+    skipped: 0,
+    errors: []
+  };
+
+  try {
+    const channel = await client.getEntity(cfg.channel);
+
+    const minId = options.full
+      ? 0
+      : await highestStoredMessageId(prisma);
+    if (!options.full && minId > 0) {
+      log(`[sync] fetching messages with id > ${minId} (limit ${limit})…`);
+    } else {
+      log(`[sync] fetching latest ${limit} messages…`);
+    }
+
+    const raw = await client.getMessages(channel, {
+      limit,
+      ...(minId > 0 ? { minId } : {})
+    });
+    report.fetchedMessages = raw.length;
+
+    const messages: RawTelegramMessage[] = raw
+      .filter((m): m is Api.Message => m instanceof Api.Message)
+      .map(toRaw);
+    const groups = groupMessages(messages);
+    report.logicalPosts = groups.length;
+
+    log(
+      `[sync] ${raw.length} message${raw.length === 1 ? "" : "s"} → ${
+        groups.length
+      } logical post${groups.length === 1 ? "" : "s"}.`
+    );
+
+    for (const group of groups) {
+      try {
+        // We need the original GramJS Message objects to download bytes.
+        // Build a fast lookup by id.
+        const byId = new Map(raw.map((m) => [m.id, m]));
+
+        const parsed = parseCaption(group.caption);
+        const locationId = parsed.location
+          ? await upsertLocation(prisma, parsed.location)
+          : null;
+
+        const mediaPayload: Array<{
+          orderIndex: number;
+          url: string;
+          width: number;
+          height: number;
+          aspectRatio: number;
+          blurHash: string;
+          blurDataURL: string;
+          dominantColor: string;
+        }> = [];
+
+        for (let i = 0; i < group.photoMessages.length; i++) {
+          const photoMsg = group.photoMessages[i];
+          const original = byId.get(photoMsg.id);
+          if (!original) continue;
+
+          const buffer = await client.downloadMedia(original);
+          if (!buffer) continue;
+          const bytes =
+            buffer instanceof Buffer ? buffer : Buffer.from(buffer);
+
+          const processed = await processAndStore(
+            bytes,
+            `tg:${cfg.channel}:${photoMsg.id}`
+          );
+          mediaPayload.push({ orderIndex: i, ...processed });
+        }
+
+        if (mediaPayload.length === 0) {
+          report.skipped += 1;
+          continue;
+        }
+
+        const cover = mediaPayload[0];
+
+        await prisma.$transaction(async (tx) => {
+          const saved = await tx.post.upsert({
+            where: { telegramMessageId: BigInt(group.anchorId) },
+            update: {
+              slug: String(group.anchorId),
+              mediaGroupId: group.groupedId,
+              caption: parsed.body,
+              contributorUsername: parsed.contributorUsername,
+              contributorDisplayName: parsed.contributorUsername,
+              locationId,
+              reactions: group.reactions as object,
+              views: group.views,
+              dominantColor: cover.dominantColor,
+              aspectRatio: cover.aspectRatio,
+              publishedAt: new Date(group.publishedAt)
+            },
+            create: {
+              slug: String(group.anchorId),
+              telegramMessageId: BigInt(group.anchorId),
+              mediaGroupId: group.groupedId,
+              caption: parsed.body,
+              contributorUsername: parsed.contributorUsername,
+              contributorDisplayName: parsed.contributorUsername,
+              locationId,
+              reactions: group.reactions as object,
+              views: group.views,
+              dominantColor: cover.dominantColor,
+              aspectRatio: cover.aspectRatio,
+              publishedAt: new Date(group.publishedAt)
+            }
+          });
+
+          await tx.media.deleteMany({ where: { postId: saved.id } });
+          await tx.media.createMany({
+            data: mediaPayload.map((m) => ({
+              postId: saved.id,
+              imageUrl: m.url,
+              thumbnailUrl: m.url,
+              width: m.width,
+              height: m.height,
+              aspectRatio: m.aspectRatio,
+              orderIndex: m.orderIndex,
+              blurHash: m.blurHash,
+              blurDataURL: m.blurDataURL,
+              dominantColor: m.dominantColor
+            }))
+          });
+        });
+
+        report.upsertedPosts += 1;
+        report.uploadedMedia += mediaPayload.length;
+        log(
+          `[sync]   ✓ ${group.anchorId} (${mediaPayload.length} photo${
+            mediaPayload.length === 1 ? "" : "s"
+          })${parsed.location ? ` · ${parsed.location}` : ""}${
+            parsed.contributorUsername ? ` · @${parsed.contributorUsername}` : ""
+          }`
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        report.errors.push({ anchorId: group.anchorId, error: msg });
+        log(`[sync]   ✗ ${group.anchorId}: ${msg}`);
+      }
+    }
+  } finally {
+    await client.disconnect();
+  }
+
+  log(
+    `[sync] done — ${report.upsertedPosts} posts, ${report.uploadedMedia} media${
+      report.skipped > 0 ? `, ${report.skipped} skipped` : ""
+    }${report.errors.length > 0 ? `, ${report.errors.length} errors` : ""}.`
+  );
+
+  return report;
+}
+
+async function highestStoredMessageId(
+  prismaClient: NonNullable<typeof prisma>
+): Promise<number> {
+  const latest = await prismaClient.post.findFirst({
+    orderBy: { telegramMessageId: "desc" },
+    select: { telegramMessageId: true }
+  });
+  if (!latest) return 0;
+  return Number(latest.telegramMessageId);
+}
+
+async function upsertLocation(
+  prismaClient: NonNullable<typeof prisma>,
+  name: string
+): Promise<string> {
+  const loc = await prismaClient.location.upsert({
+    where: { slug: slugify(name) },
+    update: { name },
+    create: { name, slug: slugify(name) }
+  });
+  return loc.id;
+}
+
+/** Map a GramJS Api.Message to the minimal shape our grouper requires. */
+function toRaw(m: Api.Message): RawTelegramMessage {
+  const hasPhoto = m.media instanceof Api.MessageMediaPhoto;
+
+  let reactions:
+    | Array<{ emoji: string; count: number }>
+    | null = null;
+  if (m.reactions?.results) {
+    reactions = m.reactions.results
+      .map((r) => {
+        const reaction = r.reaction as
+          | Api.ReactionEmoji
+          | Api.ReactionCustomEmoji
+          | Api.ReactionEmpty
+          | undefined;
+        const emoji =
+          reaction instanceof Api.ReactionEmoji
+            ? reaction.emoticon
+            : null;
+        if (!emoji) return null;
+        return { emoji, count: r.count };
+      })
+      .filter((x): x is { emoji: string; count: number } => x !== null);
+  }
+
+  return {
+    id: m.id,
+    groupedId: m.groupedId ? m.groupedId.toString() : null,
+    date: m.date,
+    message: m.message ?? null,
+    hasPhoto,
+    views: m.views ?? null,
+    reactions
+  };
+}

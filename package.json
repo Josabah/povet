@@ -1,0 +1,50 @@
+{
+  "name": "pov.et",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "bootstrap:mock": "tsx scripts/bootstrap-mock.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx scripts/seed.ts",
+    "telegram:login": "tsx scripts/telegram-login.ts",
+    "telegram:sync": "tsx scripts/telegram-sync.ts",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1051.0",
+    "@prisma/client": "^5.22.0",
+    "blurhash": "^2.0.5",
+    "framer-motion": "^11.11.17",
+    "input": "^1.0.1",
+    "next": "^15.0.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
+    "telegram": "^2.26.16"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "cheerio": "^1.0.0",
+    "dotenv": "^17.4.2",
+    "postcss": "^8.4.49",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.15",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

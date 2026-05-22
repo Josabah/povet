@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: theme("colors.paper");
+    --foreground: theme("colors.ink");
+    --muted: theme("colors.slate.500");
+    --hairline: theme("colors.mist");
+  }
+
+  html {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "ss01", "ss02", "cv11", "kern";
+  }
+
+  ::selection {
+    background: theme("colors.sky");
+    color: theme("colors.ink");
+  }
+
+  /* Soft, quiet focus ring */
+  :focus-visible {
+    outline: 2px solid theme("colors.ink");
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .hairline {
+    border-color: var(--hairline);
+  }
+
+  .meta {
+    @apply text-meta uppercase tracking-widest text-slate-500;
+  }
+
+  .prose-editorial {
+    @apply font-display text-[1.125rem] leading-[1.75] text-slate-700;
+  }
+
+  /* Masonry feed using CSS columns. Cheap, accessible, organic. */
+  .feed-columns {
+    column-gap: 1.5rem;
+    column-count: 1;
+  }
+
+  @media (min-width: 640px) {
+    .feed-columns {
+      column-count: 2;
+      column-gap: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .feed-columns {
+      column-count: 3;
+      column-gap: 2.5rem;
+    }
+  }
+
+  .feed-item {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 2.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .feed-item {
+      margin-bottom: 3.5rem;
+    }
+  }
+
+  /* Inside-a-post gallery. Slightly less dense than the homepage feed
+   * — you're inside one body of work, not browsing the archive. */
+  .gallery-columns {
+    column-gap: 1.25rem;
+    column-count: 1;
+  }
+
+  @media (min-width: 768px) {
+    .gallery-columns {
+      column-count: 2;
+      column-gap: 1.75rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .gallery-columns {
+      column-gap: 2.25rem;
+    }
+  }
+
+  .gallery-item {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .gallery-item {
+      margin-bottom: 1.75rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .gallery-item {
+      margin-bottom: 2.25rem;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}

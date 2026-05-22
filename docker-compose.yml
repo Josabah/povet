@@ -1,0 +1,35 @@
+# Local development Postgres for pov.et.
+#
+# Production target is a managed Postgres (Supabase / Neon / Railway). This
+# compose file exists only to make first-run local development trivial.
+#
+# Usage:
+#   docker compose up -d
+#   cp .env.example .env   # then leave DATABASE_URL pointing at the line below
+#   pnpm run db:push
+#   pnpm run db:seed
+#   pnpm run dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: povet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: povet
+      POSTGRES_PASSWORD: povet
+      POSTGRES_DB: povet
+    # Host port 5434 chosen to avoid colliding with system Postgres (5432)
+    # and other Docker containers from sibling projects (5433).
+    ports:
+      - "5434:5432"
+    volumes:
+      - povet-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U povet -d povet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  povet-postgres-data:
