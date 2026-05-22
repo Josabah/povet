@@ -24,36 +24,7 @@ export function PostGallery({ media }: Props) {
     setOpen(true);
   };
 
-  if (media.length === 1) {
-    const only = media[0];
-    return (
-      <>
-        <motion.button
-          type="button"
-          onClick={() => onOpen(0)}
-          initial={reduce ? false : { opacity: 0, y: 6 }}
-          animate={reduce ? undefined : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: [0.22, 0.61, 0.36, 1] }}
-          className="group relative block w-full overflow-hidden outline-none"
-          aria-label="View photograph"
-        >
-          <MasonryFrame
-            media={only}
-            sizes="(max-width: 1024px) 100vw, 1400px"
-            priority
-            imageClassName="object-cover"
-          />
-        </motion.button>
-
-        <Lightbox
-          media={media}
-          open={open}
-          initialIndex={activeIndex}
-          onClose={() => setOpen(false)}
-        />
-      </>
-    );
-  }
+  if (media.length === 0) return null;
 
   return (
     <>
@@ -72,7 +43,11 @@ export function PostGallery({ media }: Props) {
               ease: [0.22, 0.61, 0.36, 1]
             }}
             className="archive-item group relative block w-full overflow-hidden outline-none"
-            aria-label={`View photograph ${i + 1} of ${media.length}`}
+            aria-label={
+              media.length === 1
+                ? "View photograph"
+                : `View photograph ${i + 1} of ${media.length}`
+            }
           >
             <MasonryFrame
               media={m}

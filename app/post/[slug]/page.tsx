@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostGallery } from "@/components/post-gallery";
+import { PostMetaRow } from "@/components/post-meta-row";
 import {
   formatContributor,
   formatPhotographerHandle,
@@ -59,26 +60,33 @@ export default async function PostPage({ params }: PageProps) {
   return (
     <article className="mx-auto max-w-feed px-6 pb-24 pt-6 md:px-10 md:pt-8">
       <header className="mb-6 md:mb-8">
-        <div className="flex items-baseline justify-between gap-4 text-[0.84rem] text-slate-500">
-          {post.contributorUsername ? (
-            <Link
-              href={`/photographer/${post.contributorUsername}`}
-              className="truncate text-ink transition-colors duration-300 hover:text-slate-600"
-            >
-              {photographer}
-            </Link>
-          ) : (
-            <span className="truncate text-slate-500">{photographer}</span>
-          )}
-          {post.location ? (
-            <Link
-              href={`/location/${slugify(post.location)}`}
-              className="shrink-0 text-slate-400 transition-colors duration-300 hover:text-ink"
-            >
-              {post.location}
-            </Link>
-          ) : null}
-        </div>
+        <PostMetaRow
+          className="text-[0.84rem]"
+          left={
+            post.contributorUsername ? (
+              <Link
+                href={`/photographer/${post.contributorUsername}`}
+                className="block truncate text-ink transition-colors duration-300 hover:text-slate-600"
+              >
+                {photographer}
+              </Link>
+            ) : (
+              <span className="block truncate text-slate-500">
+                {photographer}
+              </span>
+            )
+          }
+          right={
+            post.location ? (
+              <Link
+                href={`/location/${slugify(post.location)}`}
+                className="block truncate text-slate-400 transition-colors duration-300 hover:text-ink"
+              >
+                {post.location}
+              </Link>
+            ) : undefined
+          }
+        />
 
         {post.caption && (
           <p className="mt-5 max-w-prose font-display text-display-md text-balance text-pretty leading-[1.35] text-ink">

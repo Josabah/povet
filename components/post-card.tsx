@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FadeIn } from "./motion/fade-in";
 import { MasonryFrame } from "./masonry-frame";
+import { PostMetaRow } from "./post-meta-row";
 import { formatPhotographerHandle } from "@/lib/format";
 import type { Post } from "@/lib/types";
 
@@ -50,12 +51,17 @@ export function PostCard({ post, priority = false, index = 0 }: Props) {
             )}
           </div>
 
-          <div className="mt-2 flex items-baseline justify-between gap-4 text-[0.82rem] text-slate-500">
-            <span className="truncate">{photographer}</span>
-            {post.location ? (
-              <span className="shrink-0 text-slate-400">{post.location}</span>
-            ) : null}
-          </div>
+          <PostMetaRow
+            className="mt-2 text-[0.82rem]"
+            left={<span className="block truncate">{photographer}</span>}
+            right={
+              post.location ? (
+                <span className="block truncate text-slate-400">
+                  {post.location}
+                </span>
+              ) : undefined
+            }
+          />
         </Link>
       </article>
     </FadeIn>
