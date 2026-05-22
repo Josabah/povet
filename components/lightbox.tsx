@@ -13,6 +13,8 @@ type Props = {
   onClose: () => void;
 };
 
+const fade = { duration: 0.5, ease: [0.22, 0.61, 0.36, 1] as const };
+
 export function Lightbox({ media, open, initialIndex, onClose }: Props) {
   const [index, setIndex] = useState(initialIndex);
   const touchStartX = useRef<number | null>(null);
@@ -59,16 +61,17 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
   };
 
   const current = media[index];
+  const transition = reduce ? { duration: 0 } : fade;
 
   return (
     <AnimatePresence>
       {open && current && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col bg-black text-paper/80"
+          className="fixed inset-0 z-[100] flex flex-col bg-soot text-paper/70"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: reduce ? 0 : 0.45, ease: [0.22, 0.61, 0.36, 1] }}
+          transition={transition}
           role="dialog"
           aria-modal="true"
           aria-label="Photograph viewer"
@@ -82,13 +85,13 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-5 top-5 z-10 text-[1.4rem] leading-none text-paper/40 transition-colors duration-300 hover:text-paper md:right-8 md:top-7"
+            className="absolute right-4 top-4 z-10 px-2 py-1 font-sans text-[1.25rem] leading-none text-paper/25 transition-colors duration-500 hover:text-paper/55 md:right-7 md:top-6"
           >
             ×
           </button>
 
           <div
-            className="relative flex flex-1 items-center justify-center px-4 py-8 md:px-16 md:py-16"
+            className="relative flex flex-1 items-center justify-center px-3 py-10 md:px-12 md:py-14"
             onClick={(e) => {
               if (e.target === e.currentTarget) onClose();
             }}
@@ -96,11 +99,11 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={current.src}
-                className="relative h-full w-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduce ? 0 : 0.4, ease: "easeOut" }}
+                className="relative h-full w-full max-h-[88vh]"
+                initial={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
+                transition={transition}
               >
                 <Image
                   src={current.src}
@@ -120,7 +123,7 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
                 <button
                   type="button"
                   onClick={goPrev}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 px-4 py-3 text-[1.4rem] leading-none text-paper/30 transition-colors duration-300 hover:text-paper md:left-8"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 font-sans text-[1.2rem] leading-none text-paper/20 transition-colors duration-500 hover:text-paper/45 md:left-6"
                   aria-label="Previous photograph"
                 >
                   ←
@@ -128,7 +131,7 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-3 text-[1.4rem] leading-none text-paper/30 transition-colors duration-300 hover:text-paper md:right-8"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 font-sans text-[1.2rem] leading-none text-paper/20 transition-colors duration-500 hover:text-paper/45 md:right-6"
                   aria-label="Next photograph"
                 >
                   →
@@ -138,9 +141,9 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
           </div>
 
           {media.length > 1 && (
-            <div className="pb-5 text-center text-[0.78rem] tracking-wider text-paper/30 md:pb-7">
+            <p className="pb-4 text-center font-sans text-[0.68rem] text-paper/18 md:pb-6">
               {index + 1} / {media.length}
-            </div>
+            </p>
           )}
         </motion.div>
       )}

@@ -32,3 +32,20 @@ if (
 }
 
 export const isDatabaseAvailable = (): boolean => prisma !== null;
+
+/**
+ * Prisma client for long-running scripts (Telegram sync, seed).
+ *
+ * Neon’s connection pooler does not support Prisma interactive
+ * `$transaction` blocks. Use the direct (non-pooled) URL when available.
+ */
+export function createScriptPrisma(): PrismaClient {
+  const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("DATABASE_URL is not set.");
+  }
+  return new PrismaClient({
+    datasources: { db: { url } },
+    log: ["warn", "error"]
+  });
+}

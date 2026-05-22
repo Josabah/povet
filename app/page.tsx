@@ -8,7 +8,7 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-feed px-6 pt-8 md:px-10 md:pt-10">
-      <section className="feed-columns" aria-label="Archive">
+      <section className="archive-columns" aria-label="Photographs">
         {posts.map((post, i) => (
           <PostCard
             key={post.slug}

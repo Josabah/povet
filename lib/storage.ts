@@ -115,6 +115,10 @@ class R2Backend implements StorageBackend {
       // R2 ignores the region but the SDK requires a value.
       region: "auto",
       endpoint: `https://${cfg.accountId}.r2.cloudflarestorage.com`,
+      // R2 only supports path-style URLs. Without this, the SDK builds
+      // `{bucket}.{accountId}.r2.cloudflarestorage.com`, which does not
+      // resolve (ENOTFOUND).
+      forcePathStyle: true,
       credentials: {
         accessKeyId: cfg.accessKeyId,
         secretAccessKey: cfg.secretAccessKey

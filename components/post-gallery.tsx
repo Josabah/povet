@@ -1,15 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
 
 import { Lightbox } from "./lightbox";
+import { MasonryFrame } from "./masonry-frame";
 import type { Media } from "@/lib/types";
 
 type Props = {
   media: Media[];
 };
+
+const FEED_SIZES =
+  "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 25vw, 20vw";
 
 export function PostGallery({ media }: Props) {
   const [open, setOpen] = useState(false);
@@ -21,7 +24,6 @@ export function PostGallery({ media }: Props) {
     setOpen(true);
   };
 
-  // A single photograph deserves the full width — no masonry needed.
   if (media.length === 1) {
     const only = media[0];
     return (
@@ -29,25 +31,17 @@ export function PostGallery({ media }: Props) {
         <motion.button
           type="button"
           onClick={() => onOpen(0)}
-          initial={reduce ? false : { opacity: 0, y: 8 }}
+          initial={reduce ? false : { opacity: 0, y: 6 }}
           animate={reduce ? undefined : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
+          transition={{ duration: 0.65, ease: [0.22, 0.61, 0.36, 1] }}
           className="group relative block w-full overflow-hidden outline-none"
-          style={{
-            aspectRatio: only.aspectRatio,
-            backgroundColor: only.dominantColor
-          }}
           aria-label="View photograph"
         >
-          <Image
-            src={only.src}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 1024px"
-            placeholder="blur"
-            blurDataURL={only.blurDataURL}
+          <MasonryFrame
+            media={only}
+            sizes="(max-width: 1024px) 100vw, 1400px"
             priority
-            className="object-cover"
+            imageClassName="object-cover"
           />
         </motion.button>
 
@@ -63,36 +57,27 @@ export function PostGallery({ media }: Props) {
 
   return (
     <>
-      <div className="gallery-columns">
+      <div className="archive-columns">
         {media.map((m, i) => (
           <motion.button
             key={m.src}
             type="button"
             onClick={() => onOpen(i)}
-            initial={reduce ? false : { opacity: 0, y: 10 }}
+            initial={reduce ? false : { opacity: 0, y: 8 }}
             whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "0px 0px -120px 0px" }}
+            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
             transition={{
-              duration: 0.65,
-              delay: Math.min(i, 4) * 0.05,
+              duration: 0.6,
+              delay: Math.min(i, 4) * 0.04,
               ease: [0.22, 0.61, 0.36, 1]
             }}
-            className="gallery-item group relative block w-full overflow-hidden outline-none"
-            style={{
-              aspectRatio: m.aspectRatio,
-              backgroundColor: m.dominantColor
-            }}
+            className="archive-item group relative block w-full overflow-hidden outline-none"
             aria-label={`View photograph ${i + 1} of ${media.length}`}
           >
-            <Image
-              src={m.src}
-              alt=""
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 600px"
-              placeholder="blur"
-              blurDataURL={m.blurDataURL}
+            <MasonryFrame
+              media={m}
+              sizes={FEED_SIZES}
               priority={i === 0}
-              className="object-cover transition-transform duration-[1400ms] ease-quiet group-hover:scale-[1.01] motion-reduce:transform-none"
             />
           </motion.button>
         ))}

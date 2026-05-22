@@ -3,7 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostGallery } from "@/components/post-gallery";
-import { formatContributor, formatPublishedAt } from "@/lib/format";
+import {
+  formatContributor,
+  formatPhotographerHandle,
+  formatPublishedAt
+} from "@/lib/format";
 import {
   getAllSlugs,
   getNeighbors,
@@ -29,7 +33,7 @@ export async function generateMetadata({
   const title = post.location
     ? `${post.location} — pov.et`
     : `${formatContributor(post.contributorUsername, post.contributorDisplayName)} — pov.et`;
-  const description = post.caption ?? "A photograph from the pov.et archive.";
+  const description = post.caption ?? "A photograph from pov.et.";
   return {
     title,
     description,
@@ -47,44 +51,51 @@ export default async function PostPage({ params }: PageProps) {
   if (!post) notFound();
 
   const { previous, next } = await getNeighbors(slug);
+  const photographer = formatPhotographerHandle(
+    post.contributorUsername,
+    post.contributorDisplayName
+  );
 
   return (
-    <article className="mx-auto max-w-[68rem] px-6 pb-24 pt-8 md:px-10 md:pt-12">
-      <header className="mb-10 md:mb-14">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[0.92rem] text-slate-500">
-          {post.location && (
+    <article className="mx-auto max-w-feed px-6 pb-24 pt-6 md:px-10 md:pt-8">
+      <header className="mb-6 md:mb-8">
+        <div className="flex items-baseline justify-between gap-4 text-[0.84rem] text-slate-500">
+          {post.contributorUsername ? (
+            <Link
+              href={`/photographer/${post.contributorUsername}`}
+              className="truncate text-ink transition-colors duration-300 hover:text-slate-600"
+            >
+              {photographer}
+            </Link>
+          ) : (
+            <span className="truncate text-slate-500">{photographer}</span>
+          )}
+          {post.location ? (
             <Link
               href={`/location/${slugify(post.location)}`}
-              className="text-ink transition-colors duration-300 hover:text-slate-500"
+              className="shrink-0 text-slate-400 transition-colors duration-300 hover:text-ink"
             >
               {post.location}
             </Link>
-          )}
-          {post.contributorUsername && (
-            <Link
-              href={`/photographer/${post.contributorUsername}`}
-              className="transition-colors duration-300 hover:text-ink"
-            >
-              @{post.contributorUsername}
-            </Link>
-          )}
-          <span className="text-slate-400">
-            {formatPublishedAt(post.publishedAt)}
-          </span>
+          ) : null}
         </div>
 
         {post.caption && (
-          <p className="mt-6 max-w-prose font-display text-display-md text-balance text-pretty leading-[1.35] text-ink">
+          <p className="mt-5 max-w-prose font-display text-display-md text-balance text-pretty leading-[1.35] text-ink">
             {post.caption}
           </p>
         )}
+
+        <p className="mt-3 text-[0.78rem] text-slate-400">
+          {formatPublishedAt(post.publishedAt)}
+        </p>
       </header>
 
       <PostGallery media={post.media} />
 
       {(previous || next) && (
         <nav
-          className="mt-24 flex items-center justify-between text-[0.9rem] text-slate-500"
+          className="mt-20 flex items-center justify-between text-[0.88rem] text-slate-400"
           aria-label="Neighbouring posts"
         >
           {previous ? (

@@ -25,13 +25,16 @@ export default async function PhotographerPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-feed px-6 pb-24 md:px-10">
-      <header className="pb-10 pt-10 md:pb-14 md:pt-14">
-        <h1 className="font-display text-display-xl font-light text-ink">
+      <header className="pb-6 pt-8 md:pb-8 md:pt-10">
+        <h1 className="font-display text-display-lg font-light text-ink">
           @{username}
         </h1>
       </header>
 
-      <section className="feed-columns" aria-label={`Photographs by @${username}`}>
+      <section
+        className="archive-columns"
+        aria-label={`Photographs by @${username}`}
+      >
         {posts.map((post, i) => (
           <PostCard key={post.slug} post={post} index={i} />
         ))}

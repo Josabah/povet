@@ -17,7 +17,9 @@
  * semantics).
  */
 
-import { prisma } from "../db";
+import { createScriptPrisma } from "../db";
+import type { PrismaClient } from "@prisma/client";
+import type { TelegramClient } from "telegram";
 import { slugify } from "../posts";
 import { getStorageBackend } from "../storage";
 import { parseCaption } from "./parser";
@@ -54,11 +56,13 @@ export type SyncReport = {
 export async function runSync(
   options: SyncOptions = {}
 ): Promise<SyncReport> {
-  if (!prisma) {
+  if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
     throw new Error(
       "DATABASE_URL is not set. The Telegram sync writes directly to the database; configure DATABASE_URL first."
     );
   }
+
+  const prisma = createScriptPrisma();
 
   const cfg = readTelegramConfig();
   if (!cfg.session) {
@@ -72,6 +76,9 @@ export async function runSync(
 
   const storage = getStorageBackend();
   log(`[sync] storage: ${storage.describe()}`);
+  if (process.env.DIRECT_URL) {
+    log("[sync] database: direct connection (required for Neon + transactions)");
+  }
   log(`[sync] connecting to Telegram (channel: @${cfg.channel})…`);
   const client = await createTelegramClient(cfg);
   await client.connect();
@@ -142,10 +149,8 @@ export async function runSync(
           const original = byId.get(photoMsg.id);
           if (!original) continue;
 
-          const buffer = await client.downloadMedia(original);
-          if (!buffer) continue;
-          const bytes =
-            buffer instanceof Buffer ? buffer : Buffer.from(buffer);
+          const bytes = await downloadMediaWithRetry(client, original);
+          if (!bytes) continue;
 
           const processed = await processAndStore(
             bytes,
@@ -161,7 +166,8 @@ export async function runSync(
 
         const cover = mediaPayload[0];
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(
+          async (tx) => {
           const saved = await tx.post.upsert({
             where: { telegramMessageId: BigInt(group.anchorId) },
             update: {
@@ -208,7 +214,9 @@ export async function runSync(
               dominantColor: m.dominantColor
             }))
           });
-        });
+          },
+          { maxWait: 15_000, timeout: 60_000 }
+        );
 
         report.upsertedPosts += 1;
         report.uploadedMedia += mediaPayload.length;
@@ -227,6 +235,7 @@ export async function runSync(
     }
   } finally {
     await client.disconnect();
+    await prisma.$disconnect();
   }
 
   log(
@@ -238,8 +247,33 @@ export async function runSync(
   return report;
 }
 
+async function downloadMediaWithRetry(
+  client: TelegramClient,
+  message: Api.Message,
+  attempts = 3
+): Promise<Buffer | undefined> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const buffer = await client.downloadMedia(message);
+      if (!buffer) return undefined;
+      return buffer instanceof Buffer ? buffer : Buffer.from(buffer);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await sleep(2000 * (i + 1));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function highestStoredMessageId(
-  prismaClient: NonNullable<typeof prisma>
+  prismaClient: PrismaClient
 ): Promise<number> {
   const latest = await prismaClient.post.findFirst({
     orderBy: { telegramMessageId: "desc" },
@@ -250,7 +284,7 @@ async function highestStoredMessageId(
 }
 
 async function upsertLocation(
-  prismaClient: NonNullable<typeof prisma>,
+  prismaClient: PrismaClient,
   name: string
 ): Promise<string> {
   const loc = await prismaClient.location.upsert({

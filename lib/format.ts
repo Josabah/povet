@@ -40,3 +40,13 @@ export function formatContributor(
   if (username && username.trim().length > 0) return username;
   return "Anonymous";
 }
+
+/** Feed/footer handle: @username, display name, or Anonymous. */
+export function formatPhotographerHandle(
+  username: string | null,
+  displayName: string | null
+): string {
+  if (username && username.trim().length > 0) return `@${username}`;
+  if (displayName && displayName.trim().length > 0) return displayName;
+  return "Anonymous";
+}
