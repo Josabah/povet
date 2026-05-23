@@ -33,24 +33,28 @@ Read in this order:
 
 ## Status
 
-**Phase 5 code-complete; awaiting R2 credentials.**
+**Live in production.** Phases 1–5 deployed; Phase 6 (editorial tooling) is the
+next dev work.
 
 - Phase 1 ✅ — prototype renders against a curated mock dataset (13 posts,
   88 photographs).
 - Phase 2 ✅ — location and contributor pages live.
 - Phase 3 ✅ — Prisma schema, initial migration, idempotent seed, and a
-  Prisma-first / JSON-fallback data layer. Verified end-to-end against a
-  local Postgres (`docker compose up`).
+  Prisma-first / JSON-fallback data layer. Running on **Neon Postgres** in
+  production.
 - Discovery polish ✅ — `/sitemap.xml`, `/robots.txt`, `/feed.xml` (RSS 2.0),
   and an editorial `/opengraph-image` for the wordmark pages. Post pages
   use their own cover photograph as their Open Graph image.
-- Phase 4 ✅ — GramJS sync worker live against the channel. First real
-  backfill: 32 posts, 200 photographs. Media-group normalizer well-tested
-  (12 unit tests, all green).
-- Phase 5 ✅ (code) — Cloudflare R2 storage backend with idempotent uploads
-  and immutable cache headers. Backend selected automatically by env at
-  runtime. Falls back to local filesystem when R2 isn't configured.
-  Awaiting R2 credentials to flip on.
+- Phase 4 ✅ — GramJS sync worker live against the channel. Backfill landed
+  and incremental syncs run on a GitHub Actions cron every 20 minutes.
+  Media-group normalizer well-tested (12 unit tests, all green).
+- Phase 5 ✅ — Cloudflare R2 storage backend live in production. Idempotent
+  uploads, immutable cache headers, content-hashed keys. Falls back to local
+  filesystem in dev when R2 env vars are unset.
+- Deployment ✅ — site is live on **Vercel** with `prisma generate` wired
+  into the build to survive Vercel's dependency caching. Production env
+  has `DATABASE_URL`, `DIRECT_URL`, R2 credentials, and Telegram
+  credentials configured.
 
 ---
 
@@ -87,23 +91,19 @@ trickle in — they don't all have to land at once.
 
 ### Engineering / access
 
-6. **Telegram credentials.** Phase 4 is code-complete. To turn on the
-   sync, you need to provide:
-   - `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from
-     [my.telegram.org](https://my.telegram.org) (API Development Tools).
-     This must be a personal Telegram account — the bot API can't reliably
-     read channel history.
-   - A one-time interactive login, run via `pnpm run telegram:login`, that
-     produces a session string for `TELEGRAM_SESSION`.
-   See "Telegram sync" below for the full step-by-step.
-7. ~~**Storage choice.**~~ ✅ **Cloudflare R2.**
-8. **Hosting accounts.** Do you already have Vercel and Cloudflare accounts
-   under the `pov.et` identity, or are we creating them?
+6. ~~**Telegram credentials.**~~ ✅ Personal-account API credentials issued
+   via [my.telegram.org](https://my.telegram.org); session string generated
+   with `pnpm run telegram:login` and stored as a repo secret + Vercel env
+   var. Initial backfill landed.
+7. ~~**Storage choice.**~~ ✅ **Cloudflare R2** — bucket provisioned, public
+   URL configured, sync writing live.
+8. ~~**Hosting accounts.**~~ ✅ Vercel project linked; Cloudflare account
+   active for R2.
 9. **Existing repo.** Is this a fresh project, or is there prior code (bot,
    etc.) that should live alongside it in the same repo?
-10. **Postgres host.** Supabase is the default candidate (the schema, seed,
-    and loader are ready). Provision a new `pov-et` Supabase project now,
-    or wait?
+10. ~~**Postgres host.**~~ ✅ **Neon** — pooled `DATABASE_URL` + non-pooled
+    `DIRECT_URL` configured in Vercel and in the GitHub Actions sync
+    workflow.
 
 ### Design
 

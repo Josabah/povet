@@ -13,6 +13,11 @@
 import { cache } from "react";
 
 import { prisma } from "./db";
+import {
+  dedupeExploreImages,
+  findExploreImageIndex,
+  getExplorePageFromImages
+} from "./explore-list";
 import { getAllPosts, slugify } from "./posts";
 import type {
   ExploreImage,
@@ -49,38 +54,12 @@ export async function getExplorePage(options?: {
   limit?: number;
   direction?: "after" | "before";
 }): Promise<ExplorePage> {
-  const limit = options?.limit ?? DEFAULT_LIMIT;
-  const direction = options?.direction ?? "after";
   const all = await getAllExploreImages();
-
-  if (!options?.cursor) {
-    const slice = all.slice(0, limit);
-    return {
-      images: slice,
-      nextCursor: limit < all.length ? (slice.at(-1)?.id ?? null) : null
-    };
-  }
-
-  const idx = all.findIndex((img) => img.id === options.cursor);
-  if (idx === -1) return { images: [], nextCursor: null };
-
-  if (direction === "after") {
-    const slice = all.slice(idx + 1, idx + 1 + limit);
-    return {
-      images: slice,
-      nextCursor:
-        idx + 1 + limit < all.length ? (slice.at(-1)?.id ?? null) : null
-    };
-  }
-
-  // direction === "before" — returns the items immediately preceding `cursor`,
-  // already in chronological order (oldest of the slice first → newest last).
-  const start = Math.max(0, idx - limit);
-  const slice = all.slice(start, idx);
-  return {
-    images: slice,
-    nextCursor: start > 0 ? (slice[0]?.id ?? null) : null
-  };
+  return getExplorePageFromImages(all, {
+    cursor: options?.cursor,
+    limit: options?.limit ?? DEFAULT_LIMIT,
+    direction: options?.direction ?? "after"
+  });
 }
 
 /**
@@ -94,7 +73,7 @@ export async function getExploreWindow(
   after: number = READER_AFTER
 ): Promise<ExploreWindow> {
   const all = await getAllExploreImages();
-  const idx = all.findIndex((img) => img.id === startId);
+  const idx = findExploreImageIndex(all, startId);
   if (idx === -1) {
     return { images: [], cursorBefore: null, cursorAfter: null };
   }
@@ -120,7 +99,7 @@ export async function getExploreNeighbors(id: string): Promise<{
   next: ExploreImage | null;
 }> {
   const all = await getAllExploreImages();
-  const idx = all.findIndex((img) => img.id === id);
+  const idx = findExploreImageIndex(all, id);
   if (idx === -1) return { previous: null, next: null };
   return {
     previous: all[idx + 1] ?? null,
@@ -179,7 +158,7 @@ export async function getRelatedExploreImages(
 
   // Quiet fallback: nearest in time, excluding the current image and any
   // already scored, so we always have something to drift to.
-  const idx = all.findIndex((img) => img.id === id);
+  const idx = findExploreImageIndex(all, id);
   const neighbours: ExploreImage[] = [];
   const taken = new Set<string>([id, ...scored.map((s) => s.img.id)]);
   let step = 1;
@@ -206,9 +185,10 @@ export async function getRelatedExploreImages(
  * so the archive stays fresh.
  */
 const getAllExploreImages = cache(async (): Promise<ExploreImage[]> => {
-  if (prisma) return queryExploreImagesFromDb();
-  const posts = await getAllPosts();
-  return flattenPosts(posts);
+  const raw = prisma
+    ? await queryExploreImagesFromDb()
+    : flattenPosts(await getAllPosts());
+  return dedupeExploreImages(raw);
 });
 
 export function flattenPosts(posts: Post[]): ExploreImage[] {

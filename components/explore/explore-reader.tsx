@@ -209,6 +209,8 @@ export function ExploreReader({
     else if (dx > threshold) goPrev();
   };
 
+  const wallImages = wall.images.filter((image) => image.id !== current.id);
+
   return (
     <div
       ref={scrollRef}
@@ -241,7 +243,7 @@ export function ExploreReader({
       <section className="explore-reader__wall" aria-label="Explore">
         <ExploreGrid
           key={current.id}
-          initialImages={wall.images}
+          initialImages={wallImages}
           initialCursor={wall.cursor}
           onSelect={swapTo}
           embedded
