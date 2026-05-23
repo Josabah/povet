@@ -16,6 +16,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "telegram:login": "tsx scripts/telegram-login.ts",
     "telegram:sync": "tsx scripts/telegram-sync.ts",
+    "repair:media-groups": "tsx scripts/repair-media-groups.ts",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "postinstall": "prisma generate"
   },

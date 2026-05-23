@@ -24,6 +24,13 @@ import { slugify } from "../posts";
 import { getStorageBackend } from "../storage";
 import { parseCaption } from "./parser";
 import { groupMessages, type RawTelegramMessage } from "./groups";
+import {
+  findSiblingPosts,
+  mergeMediaPayloads,
+  persistMergedPost,
+  pickBestMetadata,
+  resolveCanonicalMessageId
+} from "./media-groups";
 import { processAndStore } from "./media";
 import {
   Api,
@@ -134,7 +141,7 @@ export async function runSync(
           : null;
 
         const mediaPayload: Array<{
-          orderIndex: number;
+          sourceMessageId: number;
           url: string;
           width: number;
           height: number;
@@ -156,64 +163,47 @@ export async function runSync(
             bytes,
             `tg:${cfg.channel}:${photoMsg.id}`
           );
-          mediaPayload.push({ orderIndex: i, ...processed });
+          mediaPayload.push({ sourceMessageId: photoMsg.id, ...processed });
         }
 
-        if (mediaPayload.length === 0) {
+        const siblings = group.groupedId
+          ? await findSiblingPosts(prisma, group.groupedId)
+          : [];
+
+        const canonicalMessageId = resolveCanonicalMessageId(
+          group.anchorId,
+          group.groupedId,
+          siblings.map((p) => Number(p.telegramMessageId))
+        );
+
+        const mergedMedia = mergeMediaPayloads(siblings, mediaPayload);
+
+        if (mergedMedia.length === 0) {
           report.skipped += 1;
           continue;
         }
 
-        const cover = mediaPayload[0];
+        const cover = mergedMedia[0];
+        const metadata = pickBestMetadata(siblings, {
+          caption: parsed.body,
+          contributorUsername: parsed.contributorUsername,
+          locationId,
+          reactions: group.reactions as object,
+          views: group.views,
+          publishedAt: new Date(group.publishedAt),
+          dominantColor: cover.dominantColor,
+          aspectRatio: cover.aspectRatio
+        });
 
         await prisma.$transaction(
           async (tx) => {
-          const saved = await tx.post.upsert({
-            where: { telegramMessageId: BigInt(group.anchorId) },
-            update: {
-              slug: String(group.anchorId),
+            await persistMergedPost(tx, {
+              canonicalMessageId,
               mediaGroupId: group.groupedId,
-              caption: parsed.body,
-              contributorUsername: parsed.contributorUsername,
-              contributorDisplayName: parsed.contributorUsername,
-              locationId,
-              reactions: group.reactions as object,
-              views: group.views,
-              dominantColor: cover.dominantColor,
-              aspectRatio: cover.aspectRatio,
-              publishedAt: new Date(group.publishedAt)
-            },
-            create: {
-              slug: String(group.anchorId),
-              telegramMessageId: BigInt(group.anchorId),
-              mediaGroupId: group.groupedId,
-              caption: parsed.body,
-              contributorUsername: parsed.contributorUsername,
-              contributorDisplayName: parsed.contributorUsername,
-              locationId,
-              reactions: group.reactions as object,
-              views: group.views,
-              dominantColor: cover.dominantColor,
-              aspectRatio: cover.aspectRatio,
-              publishedAt: new Date(group.publishedAt)
-            }
-          });
-
-          await tx.media.deleteMany({ where: { postId: saved.id } });
-          await tx.media.createMany({
-            data: mediaPayload.map((m) => ({
-              postId: saved.id,
-              imageUrl: m.url,
-              thumbnailUrl: m.url,
-              width: m.width,
-              height: m.height,
-              aspectRatio: m.aspectRatio,
-              orderIndex: m.orderIndex,
-              blurHash: m.blurHash,
-              blurDataURL: m.blurDataURL,
-              dominantColor: m.dominantColor
-            }))
-          });
+              metadata,
+              media: mergedMedia,
+              siblingPosts: siblings
+            });
           },
           { maxWait: 15_000, timeout: 60_000 }
         );
@@ -221,10 +211,16 @@ export async function runSync(
         report.upsertedPosts += 1;
         report.uploadedMedia += mediaPayload.length;
         log(
-          `[sync]   ✓ ${group.anchorId} (${mediaPayload.length} photo${
-            mediaPayload.length === 1 ? "" : "s"
+          `[sync]   ✓ ${canonicalMessageId} (${mergedMedia.length} photo${
+            mergedMedia.length === 1 ? "" : "s"
           })${parsed.location ? ` · ${parsed.location}` : ""}${
-            parsed.contributorUsername ? ` · @${parsed.contributorUsername}` : ""
+            metadata.contributorUsername
+              ? ` · @${metadata.contributorUsername}`
+              : ""
+          }${
+            siblings.length > 1
+              ? ` · merged ${siblings.length} split posts`
+              : ""
           }`
         );
       } catch (err) {
