@@ -34,6 +34,19 @@ type Props = {
    */
   onSelect?: (image: ExploreImage) => void;
   /**
+   * Called after each successful infinite-scroll page merge so the
+   * parent (reader wall cache) stays in sync with the grid.
+   */
+  onPaginate?: (state: {
+    appended: ExploreImage[];
+    cursor: string | null;
+  }) => void;
+  /**
+   * Scroll container for infinite scroll. Required for embedded grids
+   * so IntersectionObserver uses the reader scroller, not the window.
+   */
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  /**
    * `true` when the grid is rendered inside the reader modal. Skips the
    * sessionStorage-based window scroll restore / save behaviour that the
    * standalone /explore page uses to preserve scroll across navigations.
@@ -41,14 +54,11 @@ type Props = {
   embedded?: boolean;
 };
 
-function getScrollRoot(el: HTMLElement): HTMLElement | Window {
-  let node: HTMLElement | null = el.parentElement;
-  while (node) {
-    const { overflowY } = getComputedStyle(node);
-    if (overflowY === "auto" || overflowY === "scroll") return node;
-    node = node.parentElement;
+function getInitialColumnCount(embedded: boolean): number {
+  if (embedded && typeof window !== "undefined") {
+    return getExploreColumnCount(window.innerWidth);
   }
-  return window;
+  return INITIAL_COLUMN_COUNT;
 }
 
 export function ExploreGrid({
@@ -56,12 +66,15 @@ export function ExploreGrid({
   initialCursor,
   pageSize = EXPLORE_PAGE_SIZE,
   onSelect,
+  onPaginate,
+  scrollContainerRef,
   embedded = false
 }: Props) {
   const initialDeduped = dedupeExploreImages(initialImages);
-  const [columnCount, setColumnCount] = useState(INITIAL_COLUMN_COUNT);
+  const initialColumnCount = getInitialColumnCount(embedded);
+  const [columnCount, setColumnCount] = useState(initialColumnCount);
   const [columns, setColumns] = useState(() =>
-    createExploreColumns(initialDeduped, INITIAL_COLUMN_COUNT)
+    createExploreColumns(initialDeduped, initialColumnCount)
   );
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const gridRef = useRef<HTMLElement>(null);
@@ -86,10 +99,13 @@ export function ExploreGrid({
       });
     };
 
-    syncColumnCount();
+    // Standalone /explore SSR renders two columns; reconcile after hydration.
+    // Embedded reader grids mount client-side with the correct count already.
+    if (!embedded) syncColumnCount();
+
     window.addEventListener("resize", syncColumnCount);
     return () => window.removeEventListener("resize", syncColumnCount);
-  }, []);
+  }, [embedded]);
 
   useEffect(() => {
     if (embedded) return;
@@ -137,24 +153,24 @@ export function ExploreGrid({
 
       if (newImages.length > 0) {
         setColumns((prev) => appendExploreColumns(prev, newImages));
+        onPaginate?.({ appended: newImages, cursor: page.nextCursor });
       }
       setCursor(page.nextCursor);
       return newImages.length > 0;
     } finally {
       loadingRef.current = false;
     }
-  }, [pageSize]);
+  }, [onPaginate, pageSize]);
 
   // Load more only when the user scrolls near the bottom. New tiles append
   // to the shortest lane — tiles already on screen never move.
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el || !cursor) return;
-    const scrollRoot =
-      embedded && gridRef.current
-        ? getScrollRoot(gridRef.current)
+    const rootEl =
+      scrollContainerRef?.current instanceof HTMLElement
+        ? scrollContainerRef.current
         : null;
-    const rootEl = scrollRoot instanceof HTMLElement ? scrollRoot : null;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) void loadMore();
@@ -166,7 +182,7 @@ export function ExploreGrid({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [cursor, loadMore, embedded]);
+  }, [cursor, loadMore, scrollContainerRef]);
 
   let priorityBudget = 8;
 

@@ -172,6 +172,7 @@
     /* Instant scroll only — `swapTo` snaps to top, no fast-airplane
        smooth animation. */
     scroll-behavior: auto;
+    overflow-anchor: auto;
   }
 
   @media (min-width: 768px) {

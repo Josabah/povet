@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ExploreGrid } from "./explore-grid";
 import { ExploreReaderHero } from "./explore-reader-hero";
+import { appendExploreImages } from "@/lib/explore-list";
 import type { ExploreImage, ExplorePage } from "@/lib/types";
 
 type Props = {
@@ -211,6 +212,20 @@ export function ExploreReader({
 
   const wallImages = wall.images.filter((image) => image.id !== current.id);
 
+  const syncWallPagination = useCallback(
+    (state: { appended: ExploreImage[]; cursor: string | null }) => {
+      setWall((prev) => {
+        const next = {
+          images: appendExploreImages(prev.images, state.appended),
+          cursor: state.cursor
+        };
+        wallCache.current.set(current.id, next);
+        return next;
+      });
+    },
+    [current.id]
+  );
+
   return (
     <div
       ref={scrollRef}
@@ -246,6 +261,8 @@ export function ExploreReader({
           initialImages={wallImages}
           initialCursor={wall.cursor}
           onSelect={swapTo}
+          onPaginate={syncWallPagination}
+          scrollContainerRef={scrollRef}
           embedded
         />
       </section>
