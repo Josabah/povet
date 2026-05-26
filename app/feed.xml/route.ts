@@ -6,7 +6,7 @@
  * no tracking pixels, just the post, the place, and the photographer.
  */
 
-import { getAllPosts } from "@/lib/posts";
+import { getFeedEntries } from "@/lib/posts";
 import { formatContributor } from "@/lib/format";
 
 export const revalidate = 300;
@@ -15,7 +15,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://pov.et";
 
 export async function GET() {
-  const posts = await getAllPosts();
+  const posts = await getFeedEntries();
   const lastBuild = posts[0]
     ? new Date(posts[0].publishedAt).toUTCString()
     : new Date().toUTCString();

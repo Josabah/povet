@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { FadeIn } from "./motion/fade-in";
 import { MasonryFrame } from "./masonry-frame";
 import { PostMetaRow } from "./post-meta-row";
 import { formatPhotographerHandle } from "@/lib/format";
@@ -9,15 +8,13 @@ import type { Post } from "@/lib/types";
 type Props = {
   post: Post;
   priority?: boolean;
-  index?: number;
 };
 
-export function PostCard({ post, priority = false, index = 0 }: Props) {
+export function PostCard({ post, priority = false }: Props) {
   const cover = post.media[0];
   if (!cover) return null;
 
   const extraCount = post.media.length - 1;
-  const delay = Math.min(index, 5) * 60;
 
   const photographer = formatPhotographerHandle(
     post.contributorUsername,
@@ -25,8 +22,7 @@ export function PostCard({ post, priority = false, index = 0 }: Props) {
   );
 
   return (
-    <FadeIn delay={delay}>
-      <article className="archive-item">
+    <article className="archive-item">
         <Link
           href={`/post/${post.slug}`}
           className="group block"
@@ -63,7 +59,6 @@ export function PostCard({ post, priority = false, index = 0 }: Props) {
             }
           />
         </Link>
-      </article>
-    </FadeIn>
+    </article>
   );
 }

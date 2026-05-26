@@ -4,20 +4,26 @@
  * Each Media item becomes an ExploreImage. Pagination walks the global
  * sequence (newest posts first, media order within post preserved).
  *
- * Caching: per-request memoization via React `cache()`. Cross-request
- * freshness is handled by the page's `revalidate` window — never trust a
- * module-level variable to live across deploys, serverless instances, or
- * Telegram syncs.
+ * Caching: per-request memoization via React `cache()` for mock fallback.
+ * Cross-request freshness is handled by the page's `revalidate` window.
  */
 
 import { cache } from "react";
 
+import { exploreMediaSelect } from "./db-selects";
 import { prisma } from "./db";
+import {
+  buildExploreAfterWhere,
+  buildExploreBeforeWhere,
+  exploreAfterOrderBy,
+  exploreBeforeOrderBy
+} from "./explore-pagination";
 import {
   dedupeExploreImages,
   findExploreImageIndex,
   getExplorePageFromImages
 } from "./explore-list";
+import { blurDataURLFromHash } from "./media-blur";
 import { getAllPosts, slugify } from "./posts";
 import type {
   ExploreImage,
@@ -54,25 +60,80 @@ export async function getExplorePage(options?: {
   limit?: number;
   direction?: "after" | "before";
 }): Promise<ExplorePage> {
-  const all = await getAllExploreImages();
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const direction = options?.direction ?? "after";
+
+  if (prisma) {
+    return queryExplorePageFromDb({
+      cursor: options?.cursor,
+      limit,
+      direction
+    });
+  }
+
+  const all = await getAllExploreImagesMock();
   return getExplorePageFromImages(all, {
     cursor: options?.cursor,
-    limit: options?.limit ?? DEFAULT_LIMIT,
-    direction: options?.direction ?? "after"
+    limit,
+    direction
   });
 }
 
-/**
- * Initial window for the reader — a small slice centred on `startId` plus
- * cursors for extending in either direction. Keeps server-side render
- * cheap and lets the client stream more as the user drifts.
- */
 export async function getExploreWindow(
   startId: string,
   before: number = READER_BEFORE,
   after: number = READER_AFTER
 ): Promise<ExploreWindow> {
-  const all = await getAllExploreImages();
+  if (prisma) {
+    const current = await queryExploreImageByIdFromDb(startId);
+    if (!current) {
+      return { images: [], cursorBefore: null, cursorAfter: null };
+    }
+
+    const cursorKey = await resolveExploreSortKey(startId);
+    if (!cursorKey) {
+      return { images: [], cursorBefore: null, cursorAfter: null };
+    }
+
+    const [newerRows, olderRows] = await Promise.all([
+      before > 0
+        ? prisma.media.findMany({
+            where: buildExploreBeforeWhere(cursorKey),
+            orderBy: [...exploreBeforeOrderBy],
+            take: before,
+            select: exploreMediaSelect
+          })
+        : [],
+      after > 0
+        ? prisma.media.findMany({
+            where: buildExploreAfterWhere(cursorKey),
+            orderBy: [...exploreAfterOrderBy],
+            take: after,
+            select: exploreMediaSelect
+          })
+        : []
+    ]);
+
+    const newer = await Promise.all(
+      [...newerRows].reverse().map(mapDbMedia)
+    );
+    const older = await Promise.all(olderRows.map(mapDbMedia));
+
+    const images = dedupeExploreImages([...newer, current, ...older]);
+    return {
+      images,
+      cursorBefore:
+        before > 0 && newerRows.length === before
+          ? (newer[0]?.id ?? null)
+          : null,
+      cursorAfter:
+        after > 0 && olderRows.length === after
+          ? (older.at(-1)?.id ?? null)
+          : null
+    };
+  }
+
+  const all = await getAllExploreImagesMock();
   const idx = findExploreImageIndex(all, startId);
   if (idx === -1) {
     return { images: [], cursorBefore: null, cursorAfter: null };
@@ -90,7 +151,8 @@ export async function getExploreWindow(
 export async function getExploreImageById(
   id: string
 ): Promise<ExploreImage | null> {
-  const all = await getAllExploreImages();
+  if (prisma) return queryExploreImageByIdFromDb(id);
+  const all = await getAllExploreImagesMock();
   return all.find((img) => img.id === id) ?? null;
 }
 
@@ -98,7 +160,9 @@ export async function getExploreNeighbors(id: string): Promise<{
   previous: ExploreImage | null;
   next: ExploreImage | null;
 }> {
-  const all = await getAllExploreImages();
+  if (prisma) return queryExploreNeighborsFromDb(id);
+
+  const all = await getAllExploreImagesMock();
   const idx = findExploreImageIndex(all, id);
   if (idx === -1) return { previous: null, next: null };
   return {
@@ -107,13 +171,6 @@ export async function getExploreNeighbors(id: string): Promise<{
   };
 }
 
-/**
- * Semantic wandering — score by contributor, location, color, time.
- *
- * If nothing scores (small archive, anonymous image, no shared signals),
- * fall back to the nearest neighbours in publish order so the sidebar is
- * never empty.
- */
 export async function getRelatedExploreImages(
   id: string,
   limit = 12
@@ -121,7 +178,9 @@ export async function getRelatedExploreImages(
   const current = await getExploreImageById(id);
   if (!current) return [];
 
-  const all = await getAllExploreImages();
+  const all = prisma
+    ? await queryAllExploreImagesFromDb()
+    : await getAllExploreImagesMock();
   const hour = new Date(current.publishedAt).getHours();
 
   const scored = all
@@ -156,8 +215,6 @@ export async function getRelatedExploreImages(
     return scored.slice(0, limit).map((s) => s.img);
   }
 
-  // Quiet fallback: nearest in time, excluding the current image and any
-  // already scored, so we always have something to drift to.
   const idx = findExploreImageIndex(all, id);
   const neighbours: ExploreImage[] = [];
   const taken = new Set<string>([id, ...scored.map((s) => s.img.id)]);
@@ -179,15 +236,8 @@ export async function getRelatedExploreImages(
 
 // ─── Builders ────────────────────────────────────────────────────────────────
 
-/**
- * Per-request memoization. Multiple components on the same render (grid,
- * detail, neighbours, related) share one DB hit. Resets between requests
- * so the archive stays fresh.
- */
-const getAllExploreImages = cache(async (): Promise<ExploreImage[]> => {
-  const raw = prisma
-    ? await queryExploreImagesFromDb()
-    : flattenPosts(await getAllPosts());
+const getAllExploreImagesMock = cache(async (): Promise<ExploreImage[]> => {
+  const raw = flattenPosts(await getAllPosts());
   return dedupeExploreImages(raw);
 });
 
@@ -214,7 +264,7 @@ export function flattenPosts(posts: Post[]): ExploreImage[] {
   return images;
 }
 
-function mapDbMedia(row: {
+type ExploreMediaRow = {
   id: string;
   imageUrl: string;
   width: number;
@@ -222,7 +272,6 @@ function mapDbMedia(row: {
   aspectRatio: number;
   orderIndex: number;
   blurHash: string;
-  blurDataURL: string;
   dominantColor: string;
   post: {
     slug: string;
@@ -233,7 +282,9 @@ function mapDbMedia(row: {
     location: { name: string; slug: string } | null;
     media: { id: string }[];
   };
-}): ExploreImage {
+};
+
+async function mapDbMedia(row: ExploreMediaRow): Promise<ExploreImage> {
   const media: Media = {
     src: row.imageUrl,
     width: row.width,
@@ -241,7 +292,7 @@ function mapDbMedia(row: {
     aspectRatio: row.aspectRatio,
     orderIndex: row.orderIndex,
     blurHash: row.blurHash,
-    blurDataURL: row.blurDataURL,
+    blurDataURL: await blurDataURLFromHash(row.blurHash),
     dominantColor: row.dominantColor
   };
 
@@ -260,21 +311,156 @@ function mapDbMedia(row: {
   };
 }
 
-async function queryExploreImagesFromDb(): Promise<ExploreImage[]> {
+async function resolveExploreSortKey(
+  id: string
+): Promise<{ publishedAt: Date; orderIndex: number } | null> {
+  if (!prisma) return null;
+
+  const byId = await prisma.media.findFirst({
+    where: { id, post: { status: "PUBLISHED" } },
+    select: { orderIndex: true, post: { select: { publishedAt: true } } }
+  });
+  if (byId) {
+    return { publishedAt: byId.post.publishedAt, orderIndex: byId.orderIndex };
+  }
+
+  const parsed = parseExploreImageId(id);
+  if (!parsed) return null;
+
+  const bySlug = await prisma.media.findFirst({
+    where: {
+      orderIndex: parsed.orderIndex,
+      post: { slug: parsed.postSlug, status: "PUBLISHED" }
+    },
+    select: { orderIndex: true, post: { select: { publishedAt: true } } }
+  });
+  if (!bySlug) return null;
+  return {
+    publishedAt: bySlug.post.publishedAt,
+    orderIndex: bySlug.orderIndex
+  };
+}
+
+async function queryExploreImageByIdFromDb(
+  id: string
+): Promise<ExploreImage | null> {
+  if (!prisma) return null;
+
+  let row = await prisma.media.findFirst({
+    where: { id, post: { status: "PUBLISHED" } },
+    select: exploreMediaSelect
+  });
+
+  if (!row) {
+    const parsed = parseExploreImageId(id);
+    if (parsed) {
+      row = await prisma.media.findFirst({
+        where: {
+          orderIndex: parsed.orderIndex,
+          post: { slug: parsed.postSlug, status: "PUBLISHED" }
+        },
+        select: exploreMediaSelect
+      });
+    }
+  }
+
+  return row ? mapDbMedia(row) : null;
+}
+
+async function queryExploreNeighborsFromDb(id: string): Promise<{
+  previous: ExploreImage | null;
+  next: ExploreImage | null;
+}> {
+  if (!prisma) return { previous: null, next: null };
+
+  const cursorKey = await resolveExploreSortKey(id);
+  if (!cursorKey) return { previous: null, next: null };
+
+  const [previousRow, nextRow] = await Promise.all([
+    prisma.media.findFirst({
+      where: buildExploreAfterWhere(cursorKey),
+      orderBy: [...exploreAfterOrderBy],
+      select: exploreMediaSelect
+    }),
+    prisma.media.findFirst({
+      where: buildExploreBeforeWhere(cursorKey),
+      orderBy: [...exploreBeforeOrderBy],
+      select: exploreMediaSelect
+    })
+  ]);
+
+  return {
+    previous: previousRow ? await mapDbMedia(previousRow) : null,
+    next: nextRow ? await mapDbMedia(nextRow) : null
+  };
+}
+
+async function queryExplorePageFromDb(options: {
+  cursor?: string | null;
+  limit: number;
+  direction: "after" | "before";
+}): Promise<ExplorePage> {
+  if (!prisma) return { images: [], nextCursor: null };
+
+  const { cursor, limit, direction } = options;
+
+  if (!cursor) {
+    const rows = await prisma.media.findMany({
+      where: { post: { status: "PUBLISHED" } },
+      orderBy: [...exploreAfterOrderBy],
+      take: limit + 1,
+      select: exploreMediaSelect
+    });
+    const hasMore = rows.length > limit;
+    const slice = hasMore ? rows.slice(0, limit) : rows;
+    const images = await Promise.all(slice.map(mapDbMedia));
+    return {
+      images,
+      nextCursor: hasMore ? (images.at(-1)?.id ?? null) : null
+    };
+  }
+
+  const cursorKey = await resolveExploreSortKey(cursor);
+  if (!cursorKey) return { images: [], nextCursor: null };
+
+  if (direction === "after") {
+    const rows = await prisma.media.findMany({
+      where: buildExploreAfterWhere(cursorKey),
+      orderBy: [...exploreAfterOrderBy],
+      take: limit + 1,
+      select: exploreMediaSelect
+    });
+    const hasMore = rows.length > limit;
+    const slice = hasMore ? rows.slice(0, limit) : rows;
+    const images = await Promise.all(slice.map(mapDbMedia));
+    return {
+      images,
+      nextCursor: hasMore ? (images.at(-1)?.id ?? null) : null
+    };
+  }
+
+  const rows = await prisma.media.findMany({
+    where: buildExploreBeforeWhere(cursorKey),
+    orderBy: [...exploreBeforeOrderBy],
+    take: limit,
+    select: exploreMediaSelect
+  });
+  const images = await Promise.all([...rows].reverse().map(mapDbMedia));
+  return {
+    images,
+    nextCursor: rows.length === limit ? (images[0]?.id ?? null) : null
+  };
+}
+
+async function queryAllExploreImagesFromDb(): Promise<ExploreImage[]> {
   if (!prisma) return [];
   const rows = await prisma.media.findMany({
     where: { post: { status: "PUBLISHED" } },
-    include: {
-      post: {
-        include: {
-          location: true,
-          media: { select: { id: true }, orderBy: { orderIndex: "asc" } }
-        }
-      }
-    },
-    orderBy: [{ post: { publishedAt: "desc" } }, { orderIndex: "asc" }]
+    orderBy: [...exploreAfterOrderBy],
+    select: exploreMediaSelect
   });
-  return rows.map(mapDbMedia);
+  const images = await Promise.all(rows.map(mapDbMedia));
+  return dedupeExploreImages(images);
 }
 
 function colorAffinity(a: string, b: string): number {

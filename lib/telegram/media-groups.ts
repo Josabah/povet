@@ -9,6 +9,9 @@
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 
+import { siblingPostSelect } from "../db-selects";
+import { enrichMediaPayloadsBlur } from "../media-blur";
+
 type PostWithMedia = {
   id: string;
   slug: string;
@@ -23,13 +26,12 @@ type PostWithMedia = {
   publishedAt: Date;
   media: Array<{
     imageUrl: string;
-    thumbnailUrl: string;
     width: number;
     height: number;
     aspectRatio: number;
     orderIndex: number;
     blurHash: string;
-    blurDataURL: string;
+    blurDataURL?: string;
     dominantColor: string;
   }>;
 };
@@ -179,7 +181,7 @@ export function mergeMediaPayloads(
         height: m.height,
         aspectRatio: m.aspectRatio,
         blurHash: m.blurHash,
-        blurDataURL: m.blurDataURL,
+        blurDataURL: m.blurDataURL ?? "",
         dominantColor: m.dominantColor
       });
     }
@@ -206,7 +208,7 @@ export async function findSiblingPosts(
   if (!mediaGroupId) return [];
   return prismaClient.post.findMany({
     where: { mediaGroupId },
-    include: { media: { orderBy: { orderIndex: "asc" } } },
+    select: siblingPostSelect,
     orderBy: { telegramMessageId: "asc" }
   });
 }
@@ -257,8 +259,9 @@ export async function persistMergedPost(
 
   await tx.media.deleteMany({ where: { postId: saved.id } });
   if (opts.media.length > 0) {
+    const enriched = await enrichMediaPayloadsBlur(opts.media);
     await tx.media.createMany({
-      data: opts.media.map((m) => ({
+      data: enriched.map((m) => ({
         postId: saved.id,
         imageUrl: m.url,
         thumbnailUrl: m.url,

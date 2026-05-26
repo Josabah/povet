@@ -44,8 +44,8 @@ export default async function PhotographerPage({ params }: PageProps) {
         className="archive-columns"
         aria-label={`Photographs by @${username}`}
       >
-        {posts.map((post, i) => (
-          <PostCard key={post.slug} post={post} index={i} />
+        {posts.map((post) => (
+          <PostCard key={post.slug} post={post} />
         ))}
       </section>
     </div>

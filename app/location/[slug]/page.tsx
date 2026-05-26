@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PostCard } from "@/components/post-card";
-import { getAllPosts, getPostsByLocation, slugify } from "@/lib/posts";
+import { getPostIndex, getPostsByLocation, slugify } from "@/lib/posts";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -22,7 +22,7 @@ export async function generateMetadata({
 
 export async function generateStaticParams() {
   const seen = new Set<string>();
-  const all = await getAllPosts();
+  const all = await getPostIndex();
   for (const post of all) {
     if (post.location) seen.add(slugify(post.location));
   }
@@ -48,8 +48,8 @@ export default async function LocationPage({ params }: PageProps) {
         className="archive-columns"
         aria-label={`Photographs from ${label}`}
       >
-        {posts.map((post, i) => (
-          <PostCard key={post.slug} post={post} index={i} />
+        {posts.map((post) => (
+          <PostCard key={post.slug} post={post} />
         ))}
       </section>
     </div>

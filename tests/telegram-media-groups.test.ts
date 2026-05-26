@@ -39,7 +39,6 @@ describe("mergeMediaPayloads", () => {
           media: [
             {
               imageUrl: "/media/a.jpg",
-              thumbnailUrl: "/media/a.jpg",
               width: 1000,
               height: 800,
               aspectRatio: 1.25,
@@ -94,7 +93,6 @@ describe("mergeMediaPayloads", () => {
           media: [
             {
               imageUrl: "/media/a.jpg",
-              thumbnailUrl: "/media/a.jpg",
               width: 1000,
               height: 800,
               aspectRatio: 1.25,
@@ -157,7 +155,6 @@ describe("pickBestMetadata", () => {
           media: [
             {
               imageUrl: "/media/a.jpg",
-              thumbnailUrl: "/media/a.jpg",
               width: 1000,
               height: 800,
               aspectRatio: 1.25,

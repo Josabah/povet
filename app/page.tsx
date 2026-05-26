@@ -14,7 +14,6 @@ export default async function HomePage() {
             key={post.slug}
             post={post}
             priority={i < 3}
-            index={i}
           />
         ))}
       </section>

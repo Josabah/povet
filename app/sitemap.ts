@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
 
-import { getAllPosts, slugify } from "@/lib/posts";
+import { getPostIndex, slugify } from "@/lib/posts";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://pov.et";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await getAllPosts();
+  const posts = await getPostIndex();
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: "daily", priority: 1 },

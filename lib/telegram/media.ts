@@ -26,11 +26,9 @@
  */
 
 import sharp from "sharp";
-import {
-  encode as encodeBlurhash,
-  decode as decodeBlurhash
-} from "blurhash";
+import { encode as encodeBlurhash } from "blurhash";
 
+import { blurDataURLFromHash } from "../media-blur";
 import { uploadImage, type UploadInput } from "../storage";
 
 export type ProcessedMedia = {
@@ -108,22 +106,7 @@ export async function processAndStore(
     4
   );
 
-  // Decode blurhash back into a tiny PNG so next/image can use it as a
-  // blurDataURL without shipping a decoder client-side.
-  const placeholderSize = 32;
-  const decoded = decodeBlurhash(blurHash, placeholderSize, placeholderSize);
-  const placeholderPng = await sharp(Buffer.from(decoded), {
-    raw: {
-      width: placeholderSize,
-      height: placeholderSize,
-      channels: 4
-    }
-  })
-    .png({ quality: 70, compressionLevel: 9 })
-    .toBuffer();
-  const blurDataURL = `data:image/png;base64,${placeholderPng.toString(
-    "base64"
-  )}`;
+  const blurDataURL = await blurDataURLFromHash(blurHash);
 
   const { dominant } = await sharp(servedBytes).rotate().stats();
   const dominantColor = rgbToHex(dominant.r, dominant.g, dominant.b);

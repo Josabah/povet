@@ -18,8 +18,16 @@
  */
 
 import data from "./mock-data.json";
+import {
+  getCachedFeedEntries,
+  getCachedFeedPosts,
+  getCachedPostIndex,
+  type PostIndexEntry
+} from "./archive-cache";
+import { postDetailInclude, postListInclude } from "./db-selects";
 import { prisma } from "./db";
-import type { Media, Post, Reaction } from "./types";
+import { mapPrismaPost } from "./post-mapper";
+import type { Post } from "./types";
 
 // ─── Shared utilities ────────────────────────────────────────────────────────
 
@@ -36,8 +44,23 @@ export function slugify(input: string): string {
 // ─── Public surface (async) ──────────────────────────────────────────────────
 
 export async function getAllPosts(): Promise<Post[]> {
-  if (prisma) return queryAllPostsFromDb();
+  if (prisma) return getCachedFeedPosts();
   return getAllPostsFromMock();
+}
+
+export async function getFeedEntries(): Promise<Post[]> {
+  if (prisma) return getCachedFeedEntries();
+  return getAllPostsFromMock();
+}
+
+export async function getPostIndex(): Promise<PostIndexEntry[]> {
+  if (prisma) return getCachedPostIndex();
+  return getAllPostsFromMock().map((p) => ({
+    slug: p.slug,
+    publishedAt: p.publishedAt,
+    location: p.location,
+    contributorUsername: p.contributorUsername
+  }));
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
@@ -60,7 +83,8 @@ export async function getNeighbors(slug: string): Promise<{
   previous: Post | null;
   next: Post | null;
 }> {
-  const ordered = await getAllPosts();
+  if (prisma) return queryNeighborsFromDb(slug);
+  const ordered = getAllPostsFromMock();
   const idx = ordered.findIndex((p) => p.slug === slug);
   if (idx === -1) return { previous: null, next: null };
   return {
@@ -78,10 +102,10 @@ export async function getPostsByLocation(
         status: "PUBLISHED",
         location: { slug: locationSlug }
       },
-      include: postInclude,
+      include: postListInclude,
       orderBy: { publishedAt: "desc" }
     });
-    return rows.map(mapPrismaPost);
+    return Promise.all(rows.map(mapPrismaPost));
   }
   return getAllPostsFromMock().filter(
     (p) => p.location && slugify(p.location) === locationSlug
@@ -98,10 +122,10 @@ export async function getPostsByContributor(username: string): Promise<Post[]> {
           mode: "insensitive"
         }
       },
-      include: postInclude,
+      include: postListInclude,
       orderBy: { publishedAt: "desc" }
     });
-    return rows.map(mapPrismaPost);
+    return Promise.all(rows.map(mapPrismaPost));
   }
   const u = username.toLowerCase();
   return getAllPostsFromMock().filter(
@@ -111,82 +135,39 @@ export async function getPostsByContributor(username: string): Promise<Post[]> {
 
 // ─── Prisma path ─────────────────────────────────────────────────────────────
 
-const postInclude = {
-  media: { orderBy: { orderIndex: "asc" } },
-  location: true
-} as const;
-
-async function queryAllPostsFromDb(): Promise<Post[]> {
-  if (!prisma) return [];
-  const rows = await prisma.post.findMany({
-    where: { status: "PUBLISHED" },
-    include: postInclude,
-    orderBy: { publishedAt: "desc" }
-  });
-  return rows.map(mapPrismaPost);
-}
-
 async function queryPostBySlugFromDb(slug: string): Promise<Post | null> {
   if (!prisma) return null;
   const row = await prisma.post.findUnique({
     where: { slug },
-    include: postInclude
+    include: postDetailInclude
   });
   return row ? mapPrismaPost(row) : null;
 }
 
-type PrismaPostRow = {
-  slug: string;
-  telegramMessageId: bigint;
-  caption: string | null;
-  contributorUsername: string | null;
-  contributorDisplayName: string | null;
-  views: number;
-  reactions: unknown;
-  publishedAt: Date;
-  aspectRatio: number | null;
-  dominantColor: string | null;
-  location: { name: string; slug: string } | null;
-  media: Array<{
-    imageUrl: string;
-    width: number;
-    height: number;
-    aspectRatio: number;
-    orderIndex: number;
-    blurHash: string;
-    blurDataURL: string;
-    dominantColor: string;
-  }>;
-};
+async function queryNeighborsFromDb(slug: string): Promise<{
+  previous: Post | null;
+  next: Post | null;
+}> {
+  if (!prisma) return { previous: null, next: null };
 
-function mapPrismaPost(row: PrismaPostRow): Post {
-  const media: Media[] = row.media.map((m) => ({
-    src: m.imageUrl,
-    width: m.width,
-    height: m.height,
-    aspectRatio: m.aspectRatio,
-    orderIndex: m.orderIndex,
-    blurHash: m.blurHash,
-    blurDataURL: m.blurDataURL,
-    dominantColor: m.dominantColor
-  }));
+  const ordered = await prisma.post.findMany({
+    where: { status: "PUBLISHED" },
+    select: { slug: true },
+    orderBy: { publishedAt: "desc" }
+  });
 
-  const cover = media[0];
+  const idx = ordered.findIndex((p) => p.slug === slug);
+  if (idx === -1) return { previous: null, next: null };
 
-  return {
-    slug: row.slug,
-    telegramMessageId: Number(row.telegramMessageId),
-    caption: row.caption,
-    location: row.location?.name ?? null,
-    contributorUsername: row.contributorUsername,
-    contributorDisplayName: row.contributorDisplayName,
-    views: row.views,
-    reactions: (row.reactions as Reaction[] | null) ?? [],
-    publishedAt: row.publishedAt.toISOString(),
-    aspectRatio: row.aspectRatio ?? cover?.aspectRatio ?? 1,
-    dominantColor: row.dominantColor ?? cover?.dominantColor ?? "#1d4351",
-    media
-  };
+  const previousSlug = ordered[idx + 1]?.slug ?? null;
+  const nextSlug = ordered[idx - 1]?.slug ?? null;
+
+  const [previous, next] = await Promise.all([
+    previousSlug ? queryPostBySlugFromDb(previousSlug) : null,
+    nextSlug ? queryPostBySlugFromDb(nextSlug) : null
+  ]);
+
+  return { previous, next };
 }
 
 // ─── JSON fallback path ──────────────────────────────────────────────────────
