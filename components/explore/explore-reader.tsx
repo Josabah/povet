@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ExploreGrid } from "./explore-grid";
 import { ExploreReaderHero } from "./explore-reader-hero";
+import { SiteHeader } from "@/components/site-header";
 import { appendExploreImages } from "@/lib/explore-list";
 import type { ExploreImage, ExplorePage } from "@/lib/types";
 
@@ -227,45 +228,49 @@ export function ExploreReader({
   );
 
   return (
-    <div
-      ref={scrollRef}
-      className="explore-reader h-full w-full overflow-y-auto overflow-x-hidden overscroll-contain"
-    >
-      <button
-        type="button"
-        onClick={close}
-        aria-label="Close"
-        className="fixed right-4 top-4 z-30 px-2 py-1 font-sans text-[1.25rem] leading-none text-slate-500 transition-colors duration-300 hover:text-ink md:right-7 md:top-6"
-      >
-        ×
-      </button>
+    <div className="explore-reader-shell flex h-full flex-col bg-paper">
+      <SiteHeader />
 
-      <section
-        className="explore-reader__hero"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        aria-label="Photograph"
+      <div
+        ref={scrollRef}
+        className="explore-reader min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
       >
-        <ExploreReaderHero
-          image={current}
-          hasPrevious={previous !== null}
-          hasNext={next !== null}
-          onPrev={goPrev}
-          onNext={goNext}
-        />
-      </section>
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Close"
+          className="fixed right-4 top-[4.75rem] z-30 px-2 py-1 font-sans text-[1.25rem] leading-none text-slate-500 transition-colors duration-300 hover:text-ink md:right-7 md:top-[5rem]"
+        >
+          ×
+        </button>
 
-      <section className="explore-reader__wall" aria-label="Explore">
-        <ExploreGrid
-          key={current.id}
-          initialImages={wallImages}
-          initialCursor={wall.cursor}
-          onSelect={swapTo}
-          onPaginate={syncWallPagination}
-          scrollContainerRef={scrollRef}
-          embedded
-        />
-      </section>
+        <section
+          className="explore-reader__hero"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          aria-label="Photograph"
+        >
+          <ExploreReaderHero
+            image={current}
+            hasPrevious={previous !== null}
+            hasNext={next !== null}
+            onPrev={goPrev}
+            onNext={goNext}
+          />
+        </section>
+
+        <section className="explore-reader__wall" aria-label="Explore">
+          <ExploreGrid
+            key={current.id}
+            initialImages={wallImages}
+            initialCursor={wall.cursor}
+            onSelect={swapTo}
+            onPaginate={syncWallPagination}
+            scrollContainerRef={scrollRef}
+            embedded
+          />
+        </section>
+      </div>
     </div>
   );
 }

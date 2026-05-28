@@ -29,6 +29,8 @@ export type Post = {
   location: string | null;
   contributorUsername: string | null;
   contributorDisplayName: string | null;
+  /** Hashtag names from Telegram, without the leading #. */
+  moods: string[];
   views: number;
   reactions: Reaction[];
   publishedAt: string;
@@ -48,6 +50,7 @@ export type ExploreImage = {
   locationSlug: string | null;
   contributorUsername: string | null;
   contributorDisplayName: string | null;
+  moods: string[];
   publishedAt: string;
   stackSize: number;
   mediaIndex: number;

@@ -12,9 +12,9 @@ type Props = {
 
 /**
  * Mobile one-liner beneath the photograph (hidden on `md+`, where
- * [`ExploreReaderMetaSide`] takes over). Photographer on the left,
- * location · +N more close behind — items hug their natural width
- * with a generous gap rather than being pushed to opposite edges.
+ * [`ExploreReaderMetaSide`] takes over). Handle left, location
+ * centered, +N more right — width matches the image via
+ * `.explore-hero__media`.
  */
 export function ExploreReaderMeta({ image }: Props) {
   const handle = formatPhotographerHandle(
@@ -41,35 +41,31 @@ export function ExploreReaderMeta({ image }: Props) {
   );
 
   return (
-    <div className="flex min-w-0 items-baseline gap-x-5 text-[0.84rem] text-slate-500">
-      <span className="min-w-0 shrink truncate">{handleNode}</span>
+    <div className="explore-hero__meta-row grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-baseline gap-x-2 text-[0.84rem] text-slate-500">
+      <div className="min-w-0 truncate text-left">{handleNode}</div>
 
-      {(hasLocation || extra > 0) && (
-        <span className="inline-flex min-w-0 shrink items-baseline gap-2">
-          {hasLocation ? (
-            <Link
-              href={`/location/${image.locationSlug}`}
-              className="truncate text-slate-700 transition-colors duration-300 hover:text-ink"
-            >
-              {image.location}
-            </Link>
-          ) : null}
-          {hasLocation && extra > 0 ? (
-            <span aria-hidden className="shrink-0 text-slate-400">
-              ·
-            </span>
-          ) : null}
-          {extra > 0 ? (
-            <Link
-              href={`/post/${image.postSlug}`}
-              className="shrink-0 text-slate-600 transition-colors duration-300 hover:text-ink"
-              aria-label={`View full stack of ${image.stackSize} photographs`}
-            >
-              +{extra} more
-            </Link>
-          ) : null}
-        </span>
-      )}
+      <div className="min-w-0 truncate text-center">
+        {hasLocation ? (
+          <Link
+            href={`/location/${image.locationSlug}`}
+            className="truncate text-slate-700 transition-colors duration-300 hover:text-ink"
+          >
+            {image.location}
+          </Link>
+        ) : null}
+      </div>
+
+      <div className="min-w-0 truncate text-right">
+        {extra > 0 ? (
+          <Link
+            href={`/post/${image.postSlug}`}
+            className="truncate text-slate-600 transition-colors duration-300 hover:text-ink"
+            aria-label={`View full stack of ${image.stackSize} photographs`}
+          >
+            +{extra} more
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }

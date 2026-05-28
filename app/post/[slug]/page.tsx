@@ -9,6 +9,7 @@ import {
   formatPhotographerHandle,
   formatPublishedAt
 } from "@/lib/format";
+import { formatHashtagLabels } from "@/lib/mood-labels";
 import {
   getAllSlugs,
   getNeighbors,
@@ -32,8 +33,8 @@ export async function generateMetadata({
   const post = await getPostBySlug(slug);
   if (!post) return {};
   const title = post.location
-    ? `${post.location} — pov.et`
-    : `${formatContributor(post.contributorUsername, post.contributorDisplayName)} — pov.et`;
+    ? post.location
+    : formatContributor(post.contributorUsername, post.contributorDisplayName);
   const description = post.caption ?? "A photograph from pov.et.";
   return {
     title,
@@ -56,6 +57,7 @@ export default async function PostPage({ params }: PageProps) {
     post.contributorUsername,
     post.contributorDisplayName
   );
+  const hashtagLine = formatHashtagLabels(post.moods);
 
   return (
     <article className="mx-auto max-w-feed px-6 pb-24 pt-6 md:px-10 md:pt-8">
@@ -88,10 +90,20 @@ export default async function PostPage({ params }: PageProps) {
           }
         />
 
-        {post.caption && (
-          <p className="mt-5 max-w-prose font-display text-display-md text-balance text-pretty leading-[1.35] text-ink">
-            {post.caption}
+        {hashtagLine ? (
+          <p className="mt-5 font-display text-[0.92rem] italic text-slate-600">
+            {hashtagLine}
           </p>
+        ) : null}
+
+        {post.caption && (
+          <blockquote
+            className={`explore-meta-side__quote explore-meta-side__quote--page max-w-prose font-display text-display-md text-balance text-pretty leading-[1.35] text-ink ${
+              hashtagLine ? "mt-6" : "mt-8"
+            }`}
+          >
+            &ldquo;{post.caption}&rdquo;
+          </blockquote>
         )}
 
         <p className="mt-3 text-[0.78rem] text-slate-400">

@@ -42,7 +42,7 @@ export async function GET() {
         coverUrl
           ? `<p><img src="${coverUrl}" alt="" width="${cover.width}" height="${cover.height}" /></p>`
           : null,
-        `<p>— ${escapeHtml(contributor)}</p>`
+        `<p>${escapeHtml(contributor)}</p>`
       ].filter(Boolean);
 
       const description = bodyParts.join("");
@@ -62,7 +62,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-  <title>pov.et — Ethiopia, softly</title>
+  <title>pov.et · archive of everyday Ethiopian life</title>
   <link>${SITE_URL}</link>
   <atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml" />
   <description>A quiet archive of everyday Ethiopian life, captured through phone photography.</description>

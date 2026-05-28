@@ -2,6 +2,10 @@
  * Shared Prisma select/include fragments — list paths omit blurDataURL TEXT.
  */
 
+export const moodSelect = {
+  select: { mood: { select: { name: true, slug: true } } }
+} as const;
+
 export const mediaListSelect = {
   id: true,
   imageUrl: true,
@@ -17,12 +21,14 @@ export const mediaDetailSelect = mediaListSelect;
 
 export const postListInclude = {
   media: { orderBy: { orderIndex: "asc" as const }, select: mediaListSelect },
-  location: true
+  location: true,
+  moods: moodSelect
 } as const;
 
 export const postDetailInclude = {
   media: { orderBy: { orderIndex: "asc" as const }, select: mediaDetailSelect },
-  location: true
+  location: true,
+  moods: moodSelect
 } as const;
 
 export const exploreMediaSelect = {
@@ -42,7 +48,8 @@ export const exploreMediaSelect = {
       contributorDisplayName: true,
       publishedAt: true,
       location: { select: { name: true, slug: true } },
-      media: { select: { id: true }, orderBy: { orderIndex: "asc" as const } }
+      media: { select: { id: true }, orderBy: { orderIndex: "asc" as const } },
+      moods: moodSelect
     }
   }
 } as const;
@@ -56,6 +63,7 @@ export const postIndexSelect = {
 
 export const feedEntryInclude = {
   location: true,
+  moods: moodSelect,
   media: {
     orderBy: { orderIndex: "asc" as const },
     take: 1,

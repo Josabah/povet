@@ -91,6 +91,7 @@ async function main() {
         location: raw.location,
         contributorUsername: raw.contributorUsername,
         contributorDisplayName: raw.contributorUsername, // mock: same as username
+        moods: raw.moods ?? [],
         views: raw.views,
         reactions: raw.reactions,
         publishedAt: raw.publishedAt,
@@ -123,6 +124,7 @@ type RawPost = {
   caption: string | null;
   location: string | null;
   contributorUsername: string | null;
+  moods?: string[];
   views: number;
   reactions: Reaction[];
   publishedAt: string;
@@ -157,7 +159,8 @@ function parsePage($: CheerioAPI): { posts: RawPost[]; olderCursor: string | nul
     const captionRaw = $(el).find(".tgme_widget_message_text.js-message_text").last();
     const captionText = htmlToPlain($, captionRaw);
 
-    const { location, contributorUsername, body } = parseCaption(captionText);
+    const { location, contributorUsername, caption, hashtags } =
+      parseCaption(captionText);
 
     const reactions: Reaction[] = [];
     $(el)
@@ -179,9 +182,10 @@ function parsePage($: CheerioAPI): { posts: RawPost[]; olderCursor: string | nul
 
     posts.push({
       telegramMessageId,
-      caption: body,
+      caption,
       location,
       contributorUsername,
+      moods: hashtags,
       views: Number.isFinite(views) ? views : 0,
       reactions,
       publishedAt: time ?? new Date().toISOString(),

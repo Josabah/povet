@@ -17,6 +17,7 @@
     "telegram:login": "tsx scripts/telegram-login.ts",
     "telegram:sync": "tsx scripts/telegram-sync.ts",
     "repair:media-groups": "tsx scripts/repair-media-groups.ts",
+    "reparse:captions": "tsx scripts/reparse-captions.ts",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "postinstall": "prisma generate"
   },

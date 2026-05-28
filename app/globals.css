@@ -160,14 +160,19 @@
   }
 
   /*
-   * Explore reader — hero owns the first viewport. On mobile the hero
-   * fills 100svh so the wall stays fully below the fold until the
-   * user scrolls. On desktop the hero takes ~92vh, leaving just the
-   * top edge of the wall peeking in as a soft scroll-affordance.
+   * Explore reader — hero fills a fixed viewport band so the wall below
+   * peeks in by a constant amount (none on mobile, ~3rem on desktop)
+   * instead of growing as the photograph gets shorter at narrow widths.
    */
   .explore-reader {
-    /* Cap on the hero image's visible height. */
-    --reader-max-h: 72svh;
+    /* Image height tracks the hero band minus padding and meta strip. */
+    --reader-max-h: calc(
+      100svh - var(--reader-chrome) - var(--reader-wall-peek) - 4rem
+    );
+    /* Sticky header + close control breathing room. */
+    --reader-chrome: 4.5rem;
+    /* How much of the wall peeks in below the hero (0 on mobile). */
+    --reader-wall-peek: 0px;
     background: theme("colors.paper");
     /* Instant scroll only — `swapTo` snaps to top, no fast-airplane
        smooth animation. */
@@ -177,13 +182,10 @@
 
   @media (min-width: 768px) {
     .explore-reader {
-      --reader-max-h: 76vh;
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .explore-reader {
-      --reader-max-h: 78vh;
+      --reader-wall-peek: 3rem;
+      --reader-max-h: calc(
+        100svh - var(--reader-chrome) - var(--reader-wall-peek) - 2.5rem
+      );
     }
   }
 
@@ -193,16 +195,16 @@
        the viewport changes — never drifting into a corner. */
     align-items: center;
     justify-content: center;
-    padding: 3.25rem 1rem 1.5rem;
-    /* Mobile: the wall must not show until the user actively scrolls. */
-    min-height: 100svh;
+    padding: 1.5rem 1rem 1rem;
+    /* Fixed viewport band — wall peek stays constant at every width. */
+    min-height: calc(
+      100svh - var(--reader-chrome) - var(--reader-wall-peek)
+    );
   }
 
   @media (min-width: 768px) {
     .explore-reader__hero {
-      padding: 3.5rem 2rem 2rem;
-      /* Desktop: leave a small slice of the wall visible as a hint. */
-      min-height: 92vh;
+      padding: 0.875rem 1.25rem 0.625rem;
     }
   }
 
@@ -218,20 +220,21 @@
     align-items: stretch;
     gap: 1rem;
     width: 100%;
-    max-width: 1280px;
+    max-width: min(96vw, 1360px);
   }
 
   @media (min-width: 768px) {
     .explore-hero {
       flex-direction: row;
       align-items: center;
-      gap: 2.5rem;
+      gap: 2rem;
     }
   }
 
   @media (min-width: 1280px) {
     .explore-hero {
-      gap: 3.5rem;
+      gap: 2.25rem;
+      max-width: min(94vw, 1440px);
     }
   }
 
@@ -249,17 +252,21 @@
     }
   }
 
-  .explore-hero__image {
+  .explore-hero__media {
     width: 100%;
     max-width: min(94vw, calc(var(--reader-max-h) * var(--ar)));
-    max-height: var(--reader-max-h);
     margin-inline: auto;
   }
 
   @media (min-width: 768px) {
-    .explore-hero__image {
-      max-width: min(60vw, calc(var(--reader-max-h) * var(--ar)));
+    .explore-hero__media {
+      max-width: min(100%, calc(var(--reader-max-h) * var(--ar)));
     }
+  }
+
+  .explore-hero__image {
+    width: 100%;
+    max-height: var(--reader-max-h);
   }
 
   /* Subtle edge buttons — visible affordance for "click next or back"
@@ -304,32 +311,77 @@
     }
   }
 
-  /* Mobile one-line meta strip, width-aligned with the photograph so
-     the caption visually belongs to it. Hidden on md+ where the side
-     column takes over. */
+  /* Mobile one-line meta strip — sits inside `.explore-hero__media`,
+     same width as the photograph. Hidden on md+ where the side column
+     takes over. */
   .explore-hero__meta {
     width: 100%;
-    max-width: min(94vw, calc(var(--reader-max-h) * var(--ar)));
-    margin-inline: auto;
+    padding-top: 0.625rem;
   }
 
   /* Desktop side column — fixed-ish width, vertically centred against
      the image. Hidden on mobile where the one-liner takes over. */
   .explore-hero__sidebar {
     flex: 0 0 auto;
-    width: clamp(18rem, 26vw, 22rem);
+    width: clamp(19rem, 24vw, 26rem);
     align-self: center;
   }
 
-  /* Pull-quote: line-clamp so very long captions don't blow the
-     sidebar height past the hero. Reveal-on-hover is intentionally
-     not used here — we want the column to stay quiet. */
+  /*
+   * Sidebar meta — mock hierarchy on paper: identity, then post
+   * context, then stack link. Two text tones only (ink / slate-500).
+   */
+  .explore-meta-side__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .explore-meta-side__icon {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-top: 0.2em;
+    color: theme("colors.ink");
+  }
+
+  .explore-meta-side__context {
+    margin-top: 1.375rem;
+    padding-top: 1.375rem;
+    border-top: 1px solid color-mix(in srgb, theme("colors.mist") 45%, transparent);
+  }
+
   .explore-meta-side__quote {
     display: -webkit-box;
     -webkit-line-clamp: 6;
     -webkit-box-orient: vertical;
     overflow: hidden;
     white-space: pre-line;
+    font-size: inherit;
+  }
+
+  .explore-meta-side__quote--page {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    font-size: inherit;
+  }
+
+  .explore-meta-side__stack-link {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in srgb, theme("colors.mist") 45%, transparent);
+    font-size: 0.84rem;
+    color: theme("colors.slate.500");
+    text-align: right;
+  }
+
+  .explore-meta-side__stack-link a {
+    transition: color 500ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .explore-meta-side__stack-link a:hover {
+    color: theme("colors.ink");
   }
 
   /*

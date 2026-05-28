@@ -170,6 +170,7 @@ describe("pickBestMetadata", () => {
         caption: null,
         contributorUsername: null,
         locationId: null,
+        hashtags: [],
         reactions: [],
         views: 1,
         publishedAt: new Date("2026-05-03T00:00:00.000Z"),

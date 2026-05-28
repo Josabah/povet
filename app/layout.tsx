@@ -24,7 +24,7 @@ const SITE_URL =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "pov.et — Ethiopia seen softly",
+    default: "Archive of everyday Ethiopian life · pov.et",
     template: "%s · pov.et"
   },
   description:

@@ -69,6 +69,7 @@ async function main() {
       caption: null,
       contributorUsername: null,
       locationId: null,
+      hashtags: [],
       reactions: [],
       views: 0,
       publishedAt: siblings[0].publishedAt,

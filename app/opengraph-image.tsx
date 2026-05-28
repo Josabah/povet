@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const alt =
-  "pov.et — Ethiopia, softly. A quiet archive of everyday Ethiopian life.";
+  "pov.et. Archive of everyday Ethiopian life.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -67,7 +67,7 @@ export default async function OG() {
               color: "#1d4351"
             }}
           >
-            Ethiopia, softly.
+            Archive of everyday Ethiopian life.
           </div>
           <div
             style={{

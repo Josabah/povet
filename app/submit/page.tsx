@@ -20,7 +20,7 @@ export default function SubmitPage() {
           it. We&apos;ll take a look and write back.
         </p>
         <ul className="ml-5 list-disc space-y-2 text-slate-600">
-          <li>Everyday moments — streets, weather, light, people, architecture, café scenes.</li>
+          <li>Everyday moments: streets, weather, light, people, architecture, café scenes.</li>
           <li>Phone photos are encouraged. Imperfection is part of the texture.</li>
           <li>One meaningful photo is worth more than ten.</li>
           <li>Tell us the place. Locations become pages of their own.</li>

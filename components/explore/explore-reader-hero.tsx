@@ -54,34 +54,50 @@ export function ExploreReaderHero({
           </button>
         ) : null}
 
-        <div
-          className="explore-hero__image relative"
-          style={{
-            aspectRatio: `${aspectRatio}`,
-            backgroundColor: image.media.dominantColor
-          }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={image.id}
-              className="absolute inset-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={swap}
-            >
-              <Image
-                src={image.media.src}
-                alt=""
-                fill
-                sizes="(max-width: 768px) 100vw, 60vw"
-                placeholder="blur"
-                blurDataURL={image.media.blurDataURL}
-                className="object-contain"
-                priority
-              />
-            </motion.div>
-          </AnimatePresence>
+        <div className="explore-hero__media">
+          <div
+            className="explore-hero__image relative"
+            style={{
+              aspectRatio: `${aspectRatio}`,
+              backgroundColor: image.media.dominantColor
+            }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={image.id}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={swap}
+              >
+                <Image
+                  src={image.media.src}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 60vw"
+                  placeholder="blur"
+                  blurDataURL={image.media.blurDataURL}
+                  className="object-contain"
+                  priority
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="explore-hero__meta md:hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={image.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={swap}
+              >
+                <ExploreReaderMeta image={image} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
 
         {hasNext ? (
@@ -109,20 +125,6 @@ export function ExploreReaderHero({
           </motion.div>
         </AnimatePresence>
       </aside>
-
-      <div className="explore-hero__meta md:hidden">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={image.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={swap}
-          >
-            <ExploreReaderMeta image={image} />
-          </motion.div>
-        </AnimatePresence>
-      </div>
     </div>
   );
 }

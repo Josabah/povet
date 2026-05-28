@@ -8,7 +8,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: "Explore",
   description:
-    "A flowing wall of Ethiopian life — every photograph, one quiet canvas.",
+    "A flowing wall of Ethiopian life. Every photograph, one quiet canvas.",
   alternates: { canonical: "/explore" }
 };
 

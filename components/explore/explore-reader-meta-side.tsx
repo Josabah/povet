@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { MetaLocationIcon, MetaPersonIcon } from "@/components/icons/meta-icons";
 import {
   formatContributor,
   formatMonthYear,
   formatPhotographerHandle
 } from "@/lib/format";
+import { formatHashtagLabels } from "@/lib/mood-labels";
 import type { ExploreImage } from "@/lib/types";
 
 type Props = {
@@ -29,56 +31,84 @@ export function ExploreReaderMetaSide({ image }: Props) {
   const extra = Math.max(0, image.stackSize - 1);
   const date = formatMonthYear(image.publishedAt);
   const hasQuote = Boolean(image.caption && image.caption.trim().length > 0);
+  const hashtagLine = formatHashtagLabels(image.moods);
+  const hasContext =
+    Boolean(hashtagLine) ||
+    Boolean(image.location && image.locationSlug) ||
+    hasQuote;
 
   return (
-    <div className="flex flex-col gap-7 font-sans text-[0.86rem] leading-relaxed">
-      <div className="flex flex-col gap-1.5">
-        {image.contributorUsername ? (
-          <Link
-            href={`/photographer/${image.contributorUsername}`}
-            className="text-ink transition-colors duration-300 hover:text-slate-600"
-          >
-            {handle}
-          </Link>
-        ) : (
-          <span className="text-ink/80">
-            {formatContributor(
-              image.contributorUsername,
-              image.contributorDisplayName
+    <div className="explore-meta-side font-sans text-[0.86rem] leading-relaxed">
+      <header className="explore-meta-side__identity">
+        <div className="explore-meta-side__row">
+          <MetaPersonIcon className="explore-meta-side__icon" />
+          <div className="min-w-0">
+            {image.contributorUsername ? (
+              <Link
+                href={`/photographer/${image.contributorUsername}`}
+                className="text-soot transition-colors duration-300 hover:text-slate-700"
+              >
+                {handle}
+              </Link>
+            ) : (
+              <span className="text-soot">
+                {formatContributor(
+                  image.contributorUsername,
+                  image.contributorDisplayName
+                )}
+              </span>
             )}
-          </span>
-        )}
 
-        {date ? (
-          <p className="text-[0.78rem] text-slate-600">{date}</p>
-        ) : null}
+            {date ? (
+              <p className="mt-1.5 text-[0.78rem] text-slate-500">{date}</p>
+            ) : null}
+          </div>
+        </div>
+      </header>
 
-        {image.location && image.locationSlug ? (
-          <p className="text-[0.82rem]">
-            <Link
-              href={`/location/${image.locationSlug}`}
-              className="text-slate-700 transition-colors duration-300 hover:text-ink"
+      {hasContext ? (
+        <div className="explore-meta-side__context">
+          {image.location && image.locationSlug ? (
+            <p className="explore-meta-side__row font-display italic text-soot">
+              <MetaLocationIcon className="explore-meta-side__icon" />
+              <Link
+                href={`/location/${image.locationSlug}`}
+                className="min-w-0 text-soot transition-colors duration-300 hover:text-slate-700"
+              >
+                {image.location}
+              </Link>
+            </p>
+          ) : null}
+
+          {hashtagLine ? (
+            <p
+              className={`text-[0.82rem] text-slate-500 ${
+                image.location && image.locationSlug ? "mt-2.5" : ""
+              }`}
             >
-              {image.location}
-            </Link>
-          </p>
-        ) : null}
-      </div>
+              {hashtagLine}
+            </p>
+          ) : null}
 
-      {hasQuote ? (
-        <blockquote className="explore-meta-side__quote font-display text-[0.98rem] italic leading-snug text-slate-700">
-          {image.caption}
-        </blockquote>
+          {hasQuote ? (
+            <blockquote
+              className={`explore-meta-side__quote font-display italic leading-relaxed text-soot ${
+                hashtagLine || image.location ? "mt-5" : ""
+              }`}
+            >
+              &ldquo;{image.caption}&rdquo;
+            </blockquote>
+          ) : null}
+        </div>
       ) : null}
 
       {extra > 0 ? (
         <nav
-          className="flex flex-col gap-2 text-[0.82rem] text-slate-600"
+          className="explore-meta-side__stack-link"
           aria-label="Archive links"
         >
           <Link
             href={`/post/${image.postSlug}`}
-            className="transition-colors duration-300 hover:text-ink"
             aria-label={`View full stack of ${image.stackSize} photographs`}
           >
             +{extra} more →

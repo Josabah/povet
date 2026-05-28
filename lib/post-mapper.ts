@@ -11,6 +11,10 @@ type MediaRow = {
   dominantColor: string;
 };
 
+type MoodRow = {
+  mood: { name: string; slug: string };
+};
+
 type PostRowBase = {
   slug: string;
   telegramMessageId: bigint;
@@ -24,7 +28,14 @@ type PostRowBase = {
   dominantColor: string | null;
   location: { name: string; slug: string } | null;
   media: MediaRow[];
+  moods?: MoodRow[];
 };
+
+export function mapMoodNames(rows?: MoodRow[]): string[] {
+  return (rows ?? [])
+    .map((row) => row.mood.name)
+    .sort((a, b) => a.localeCompare(b));
+}
 
 export async function mapMediaRow(m: MediaRow): Promise<Media> {
   return {
@@ -50,6 +61,7 @@ export async function mapPrismaPost(row: PostRowBase): Promise<Post> {
     location: row.location?.name ?? null,
     contributorUsername: row.contributorUsername,
     contributorDisplayName: row.contributorDisplayName,
+    moods: mapMoodNames(row.moods),
     views: row.views,
     reactions: (row.reactions as Reaction[] | null) ?? [],
     publishedAt: row.publishedAt.toISOString(),

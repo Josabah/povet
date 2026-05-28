@@ -11,7 +11,7 @@ export default function AboutPage() {
   return (
     <article className="mx-auto max-w-prose px-6 pb-32 pt-12 md:pt-16">
       <h1 className="font-display text-display-xl text-balance font-light text-ink">
-        Ethiopia, <span className="italic text-slate-600">softly</span>.
+        Archive of everyday Ethiopian life.
       </h1>
 
       <div className="prose-editorial mt-10 space-y-7">
@@ -25,7 +25,7 @@ export default function AboutPage() {
           The project began as a Telegram channel. It grew, post by post, into
           a small community of contributors who share a particular way of
           seeing the country: unhurried, observational, comfortable with
-          imperfection. This site is a second home for that work — a place
+          imperfection. This site is a second home for that work, a place
           where the photographs can sit together as an archive rather than
           scroll past as a feed.
         </p>
@@ -44,7 +44,7 @@ export default function AboutPage() {
           >
             @povetbot
           </Link>
-          . Moderation is manual. We value quality over quantity — one
+          . Moderation is manual. We value quality over quantity. One
           meaningful photograph is worth more than ten.
         </p>
         <p>

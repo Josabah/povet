@@ -11,6 +11,8 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { siblingPostSelect } from "../db-selects";
 import { enrichMediaPayloadsBlur } from "../media-blur";
+import { parseCaption } from "./parser";
+import { syncPostMoods } from "./moods";
 
 type PostWithMedia = {
   id: string;
@@ -54,6 +56,7 @@ export type PostMetadata = {
   contributorUsername: string | null;
   contributorDisplayName: string | null;
   locationId: string | null;
+  hashtags: string[];
   reactions: Prisma.InputJsonValue;
   views: number;
   publishedAt: Date;
@@ -78,6 +81,7 @@ export function pickBestMetadata(
     caption: string | null;
     contributorUsername: string | null;
     locationId: string | null;
+    hashtags: string[];
     reactions: Prisma.InputJsonValue;
     views: number;
     publishedAt: Date;
@@ -120,9 +124,17 @@ export function pickBestMetadata(
     }
   ];
 
-  const caption =
+  const rawCaption =
     sources.find((s) => s.caption && s.caption.trim().length > 0)?.caption ??
     null;
+  const reparsed = rawCaption ? parseCaption(rawCaption) : null;
+
+  const caption =
+    incoming.caption ??
+    reparsed?.caption ??
+    (rawCaption && !looksStructuredCaption(rawCaption) ? rawCaption.trim() : null);
+  const hashtags =
+    incoming.hashtags.length > 0 ? [...incoming.hashtags] : reparsed?.hashtags ?? [];
 
   const contributorUsername =
     sources.find((s) => s.contributorUsername)?.contributorUsername ?? null;
@@ -155,6 +167,7 @@ export function pickBestMetadata(
     contributorUsername,
     contributorDisplayName,
     locationId,
+    hashtags,
     reactions: reactions as Prisma.InputJsonValue,
     views,
     publishedAt,
@@ -282,4 +295,10 @@ export async function persistMergedPost(
   if (duplicateIds.length > 0) {
     await tx.post.deleteMany({ where: { id: { in: duplicateIds } } });
   }
+
+  await syncPostMoods(tx, saved.id, opts.metadata.hashtags);
+}
+
+function looksStructuredCaption(text: string): boolean {
+  return /#|📍|📷|@pov_?et|["""]/i.test(text);
 }

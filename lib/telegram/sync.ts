@@ -185,9 +185,10 @@ export async function runSync(
 
         const cover = mergedMedia[0];
         const metadata = pickBestMetadata(siblings, {
-          caption: parsed.body,
+          caption: parsed.caption,
           contributorUsername: parsed.contributorUsername,
           locationId,
+          hashtags: parsed.hashtags,
           reactions: group.reactions as object,
           views: group.views,
           publishedAt: new Date(group.publishedAt),

@@ -173,7 +173,10 @@ async function queryNeighborsFromDb(slug: string): Promise<{
 // ─── JSON fallback path ──────────────────────────────────────────────────────
 
 function getAllPostsFromMock(): Post[] {
-  return [...(data as Post[])].sort(
+  return [...(data as Post[])].map((post) => ({
+    ...post,
+    moods: post.moods ?? []
+  })).sort(
     (a, b) =>
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );

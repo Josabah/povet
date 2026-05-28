@@ -24,6 +24,7 @@ import {
   getExplorePageFromImages
 } from "./explore-list";
 import { blurDataURLFromHash } from "./media-blur";
+import { mapMoodNames } from "./post-mapper";
 import { getAllPosts, slugify } from "./posts";
 import type {
   ExploreImage,
@@ -255,6 +256,7 @@ export function flattenPosts(posts: Post[]): ExploreImage[] {
         locationSlug,
         contributorUsername: post.contributorUsername,
         contributorDisplayName: post.contributorDisplayName,
+        moods: post.moods ?? [],
         publishedAt: post.publishedAt,
         stackSize: post.media.length,
         mediaIndex: m.orderIndex
@@ -281,6 +283,7 @@ type ExploreMediaRow = {
     publishedAt: Date;
     location: { name: string; slug: string } | null;
     media: { id: string }[];
+    moods: { mood: { name: string; slug: string } }[];
   };
 };
 
@@ -305,6 +308,7 @@ async function mapDbMedia(row: ExploreMediaRow): Promise<ExploreImage> {
     locationSlug: row.post.location?.slug ?? null,
     contributorUsername: row.post.contributorUsername,
     contributorDisplayName: row.post.contributorDisplayName,
+    moods: mapMoodNames(row.post.moods),
     publishedAt: row.post.publishedAt.toISOString(),
     stackSize: row.post.media.length,
     mediaIndex: row.orderIndex
