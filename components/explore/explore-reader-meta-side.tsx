@@ -60,7 +60,9 @@ export function ExploreReaderMetaSide({ image }: Props) {
             )}
 
             {date ? (
-              <p className="mt-1.5 text-[0.78rem] text-slate-500">{date}</p>
+              <p className="explore-meta-side__date text-[0.78rem] text-slate-500">
+                {date}
+              </p>
             ) : null}
           </div>
         </div>
@@ -83,7 +85,9 @@ export function ExploreReaderMetaSide({ image }: Props) {
           {hashtagLine ? (
             <p
               className={`text-[0.82rem] text-slate-500 ${
-                image.location && image.locationSlug ? "mt-2.5" : ""
+                image.location && image.locationSlug
+                  ? "explore-meta-side__item-gap"
+                  : ""
               }`}
             >
               {hashtagLine}
@@ -93,7 +97,9 @@ export function ExploreReaderMetaSide({ image }: Props) {
           {hasQuote ? (
             <blockquote
               className={`explore-meta-side__quote font-display italic leading-relaxed text-soot ${
-                hashtagLine || image.location ? "mt-5" : ""
+                hashtagLine || image.location
+                  ? "explore-meta-side__quote-offset"
+                  : ""
               }`}
             >
               &ldquo;{image.caption}&rdquo;

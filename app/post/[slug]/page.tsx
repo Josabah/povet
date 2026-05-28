@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostGallery } from "@/components/post-gallery";
-import { PostMetaRow } from "@/components/post-meta-row";
+import { MetaLocationIcon, MetaPersonIcon } from "@/components/icons/meta-icons";
 import {
   formatContributor,
   formatPhotographerHandle,
@@ -58,57 +58,69 @@ export default async function PostPage({ params }: PageProps) {
     post.contributorDisplayName
   );
   const hashtagLine = formatHashtagLabels(post.moods);
+  const hasContext = Boolean(hashtagLine || post.caption?.trim());
 
   return (
-    <article className="mx-auto max-w-feed px-6 pb-24 pt-6 md:px-10 md:pt-8">
-      <header className="mb-6 md:mb-8">
-        <PostMetaRow
-          className="text-[0.84rem]"
-          left={
-            post.contributorUsername ? (
-              <Link
-                href={`/photographer/${post.contributorUsername}`}
-                className="block truncate text-ink transition-colors duration-300 hover:text-slate-600"
-              >
-                {photographer}
-              </Link>
-            ) : (
-              <span className="block truncate text-slate-500">
-                {photographer}
-              </span>
-            )
-          }
-          right={
-            post.location ? (
-              <Link
-                href={`/location/${slugify(post.location)}`}
-                className="block truncate text-slate-400 transition-colors duration-300 hover:text-ink"
-              >
-                {post.location}
-              </Link>
-            ) : undefined
-          }
-        />
+    <article className="mx-auto max-w-feed px-6 pb-24 pt-5 md:px-10 md:pt-6">
+      <header className="post-meta mb-3 font-sans text-[0.86rem] leading-snug md:mb-3.5">
+        <div className="post-meta__identity">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="post-meta__row min-w-0 flex-1 basis-0">
+              <MetaPersonIcon className="post-meta__icon" />
+              <div className="min-w-0">
+                {post.contributorUsername ? (
+                  <Link
+                    href={`/photographer/${post.contributorUsername}`}
+                    className="block truncate text-soot transition-colors duration-300 hover:text-slate-700"
+                  >
+                    {photographer}
+                  </Link>
+                ) : (
+                  <span className="block truncate text-soot">
+                    {formatContributor(
+                      post.contributorUsername,
+                      post.contributorDisplayName
+                    )}
+                  </span>
+                )}
 
-        {hashtagLine ? (
-          <p className="mt-5 font-display text-[0.92rem] italic text-slate-600">
-            {hashtagLine}
-          </p>
+                <p className="post-meta__date text-[0.78rem] text-slate-500">
+                  {formatPublishedAt(post.publishedAt)}
+                </p>
+              </div>
+            </div>
+
+            {post.location ? (
+              <div className="post-meta__row min-w-0 max-w-[48%] shrink-0 font-display italic text-soot">
+                <MetaLocationIcon className="post-meta__icon" />
+                <Link
+                  href={`/location/${slugify(post.location)}`}
+                  className="min-w-0 truncate text-soot transition-colors duration-300 hover:text-slate-700"
+                >
+                  {post.location}
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {hasContext ? (
+          <div className="post-meta__context">
+            {hashtagLine ? (
+              <p className="text-[0.82rem] text-slate-500">{hashtagLine}</p>
+            ) : null}
+
+            {post.caption?.trim() ? (
+              <blockquote
+                className={`post-meta__quote font-display italic leading-relaxed text-soot ${
+                  hashtagLine ? "post-meta__quote-offset" : ""
+                }`}
+              >
+                &ldquo;{post.caption}&rdquo;
+              </blockquote>
+            ) : null}
+          </div>
         ) : null}
-
-        {post.caption && (
-          <blockquote
-            className={`explore-meta-side__quote explore-meta-side__quote--page max-w-prose font-display text-display-md text-balance text-pretty leading-[1.35] text-ink ${
-              hashtagLine ? "mt-6" : "mt-8"
-            }`}
-          >
-            &ldquo;{post.caption}&rdquo;
-          </blockquote>
-        )}
-
-        <p className="mt-3 text-[0.78rem] text-slate-400">
-          {formatPublishedAt(post.publishedAt)}
-        </p>
       </header>
 
       <PostGallery media={post.media} />
