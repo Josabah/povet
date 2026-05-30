@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 bg-paper/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-mist/40 bg-paper">
       <div className="mx-auto flex max-w-feed items-center justify-between px-6 py-5 md:px-10">
         <Link
           href="/"

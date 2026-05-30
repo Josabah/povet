@@ -46,7 +46,7 @@ export function ExploreReaderMetaSide({ image }: Props) {
             {image.contributorUsername ? (
               <Link
                 href={`/photographer/${image.contributorUsername}`}
-                className="text-soot transition-colors duration-300 hover:text-slate-700"
+                className="text-soot transition-colors duration-300 hover:text-ink"
               >
                 {handle}
               </Link>
@@ -75,7 +75,7 @@ export function ExploreReaderMetaSide({ image }: Props) {
               <MetaLocationIcon className="explore-meta-side__icon" />
               <Link
                 href={`/location/${image.locationSlug}`}
-                className="min-w-0 text-soot transition-colors duration-300 hover:text-slate-700"
+                className="min-w-0 text-soot transition-colors duration-300 hover:text-ink"
               >
                 {image.location}
               </Link>

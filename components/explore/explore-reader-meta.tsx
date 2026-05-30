@@ -27,7 +27,7 @@ export function ExploreReaderMeta({ image }: Props) {
   const handleNode = image.contributorUsername ? (
     <Link
       href={`/photographer/${image.contributorUsername}`}
-      className="truncate text-ink transition-colors duration-300 hover:text-slate-600"
+      className="truncate text-ink transition-colors duration-300 hover:text-ink/80"
     >
       {handle}
     </Link>

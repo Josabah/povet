@@ -36,7 +36,7 @@ export function ExploreCard({ image, priority = false, onSelect }: Props) {
         href={`/explore/image/${image.id}`}
         scroll={false}
         onClick={handleClick}
-        className="explore-card-link group block"
+        className="explore-card-link group block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         aria-label="View photograph"
       >
         <MasonryFrame

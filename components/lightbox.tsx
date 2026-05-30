@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { formatPhotoAlt } from "@/lib/format";
 import type { Media } from "@/lib/types";
 
 type Props = {
@@ -11,11 +12,24 @@ type Props = {
   open: boolean;
   initialIndex: number;
   onClose: () => void;
+  caption?: string | null;
+  location?: string | null;
+  contributorUsername?: string | null;
+  contributorDisplayName?: string | null;
 };
 
 const fade = { duration: 0.5, ease: [0.22, 0.61, 0.36, 1] as const };
 
-export function Lightbox({ media, open, initialIndex, onClose }: Props) {
+export function Lightbox({
+  media,
+  open,
+  initialIndex,
+  onClose,
+  caption = null,
+  location = null,
+  contributorUsername = null,
+  contributorDisplayName = null
+}: Props) {
   const [index, setIndex] = useState(initialIndex);
   const touchStartX = useRef<number | null>(null);
   const reduce = useReducedMotion();
@@ -85,7 +99,7 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-4 top-4 z-10 px-2 py-1 font-sans text-[1.25rem] leading-none text-paper/25 transition-colors duration-500 hover:text-paper/55 md:right-7 md:top-6"
+            className="ui-close ui-close--on-dark absolute right-4 top-4 z-10 md:right-7 md:top-6"
           >
             ×
           </button>
@@ -107,7 +121,14 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
               >
                 <Image
                   src={current.src}
-                  alt=""
+                  alt={formatPhotoAlt({
+                    caption,
+                    location,
+                    contributorUsername,
+                    contributorDisplayName,
+                    index,
+                    total: media.length
+                  })}
                   fill
                   sizes="100vw"
                   placeholder="blur"
@@ -123,7 +144,7 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
                 <button
                   type="button"
                   onClick={goPrev}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 font-sans text-[1.2rem] leading-none text-paper/20 transition-colors duration-500 hover:text-paper/45 md:left-6"
+                  className="ui-step ui-step--on-dark absolute left-2 top-1/2 -translate-y-1/2 md:left-6"
                   aria-label="Previous photograph"
                 >
                   ←
@@ -131,7 +152,7 @@ export function Lightbox({ media, open, initialIndex, onClose }: Props) {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 font-sans text-[1.2rem] leading-none text-paper/20 transition-colors duration-500 hover:text-paper/45 md:right-6"
+                  className="ui-step ui-step--on-dark absolute right-2 top-1/2 -translate-y-1/2 md:right-6"
                   aria-label="Next photograph"
                 >
                   →

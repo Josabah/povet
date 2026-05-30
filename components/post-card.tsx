@@ -25,7 +25,7 @@ export function PostCard({ post, priority = false }: Props) {
     <article className="archive-item">
         <Link
           href={`/post/${post.slug}`}
-          className="group block"
+          className="group block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           aria-label={
             post.caption?.slice(0, 80) ??
             (post.location ? `Photographs from ${post.location}` : "View post")
@@ -39,7 +39,7 @@ export function PostCard({ post, priority = false }: Props) {
             />
             {extraCount > 0 && (
               <span
-                className="pointer-events-none absolute right-2 top-2 rounded-sm bg-ink/30 px-1.5 py-0.5 font-sans text-[0.7rem] leading-none text-paper/90 backdrop-blur-[3px]"
+                className="pointer-events-none absolute right-2 top-2 rounded-sm bg-ink/35 px-1.5 py-0.5 font-sans text-[0.7rem] leading-none text-paper/90"
                 aria-hidden
               >
                 +{extraCount}

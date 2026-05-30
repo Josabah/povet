@@ -74,3 +74,58 @@ export function formatPhotographerHandle(
   if (displayName && displayName.trim().length > 0) return displayName;
   return "Anonymous";
 }
+
+/** Short label for post-to-post navigation (location, then contributor). */
+export function formatPostNavLabel(
+  location: string | null,
+  contributorUsername: string | null,
+  contributorDisplayName: string | null
+): string {
+  if (location?.trim()) return location.trim();
+  return formatContributor(contributorUsername, contributorDisplayName);
+}
+
+/**
+ * Alt text for hero/lightbox frames. Captions are kept verbatim when present.
+ */
+export function formatPhotoAlt(options: {
+  caption?: string | null;
+  location?: string | null;
+  contributorUsername?: string | null;
+  contributorDisplayName?: string | null;
+  index?: number;
+  total?: number;
+}): string {
+  const {
+    caption,
+    location,
+    contributorUsername,
+    contributorDisplayName,
+    index,
+    total
+  } = options;
+  const trimmed = caption?.trim();
+  if (trimmed) {
+    return trimmed.length > 120 ? `${trimmed.slice(0, 117)}…` : trimmed;
+  }
+
+  const contributor = formatContributor(
+    contributorUsername ?? null,
+    contributorDisplayName ?? null
+  );
+  const base = location?.trim()
+    ? `Photograph from ${location.trim()}`
+    : "Photograph from the archive";
+  const credit =
+    contributor !== "Anonymous" ? `${base}, by ${contributor}` : base;
+
+  if (
+    index !== undefined &&
+    total !== undefined &&
+    total > 1 &&
+    Number.isFinite(index)
+  ) {
+    return `${credit} (${index + 1} of ${total})`;
+  }
+  return credit;
+}

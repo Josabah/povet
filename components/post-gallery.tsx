@@ -9,12 +9,22 @@ import type { Media } from "@/lib/types";
 
 type Props = {
   media: Media[];
+  caption?: string | null;
+  location?: string | null;
+  contributorUsername?: string | null;
+  contributorDisplayName?: string | null;
 };
 
 const FEED_SIZES =
   "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 25vw, 20vw";
 
-export function PostGallery({ media }: Props) {
+export function PostGallery({
+  media,
+  caption = null,
+  location = null,
+  contributorUsername = null,
+  contributorDisplayName = null
+}: Props) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const reduce = useReducedMotion();
@@ -42,7 +52,7 @@ export function PostGallery({ media }: Props) {
               delay: Math.min(i, 4) * 0.04,
               ease: [0.22, 0.61, 0.36, 1]
             }}
-            className="archive-item group relative block w-full overflow-hidden outline-none"
+            className="archive-item group relative block w-full overflow-hidden rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
             aria-label={
               media.length === 1
                 ? "View photograph"
@@ -63,6 +73,10 @@ export function PostGallery({ media }: Props) {
         open={open}
         initialIndex={activeIndex}
         onClose={() => setOpen(false)}
+        caption={caption}
+        location={location}
+        contributorUsername={contributorUsername}
+        contributorDisplayName={contributorDisplayName}
       />
     </>
   );

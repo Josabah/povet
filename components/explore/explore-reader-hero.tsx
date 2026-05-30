@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ExploreReaderMeta } from "./explore-reader-meta";
 import { ExploreReaderMetaSide } from "./explore-reader-meta-side";
 import { clampExploreAspectRatio } from "@/lib/masonry";
+import { formatPhotoAlt } from "@/lib/format";
 import type { ExploreImage } from "@/lib/types";
 
 type Props = {
@@ -36,6 +37,14 @@ export function ExploreReaderHero({
   const reduce = useReducedMotion();
   const aspectRatio = clampExploreAspectRatio(image.media.aspectRatio);
   const swap = reduce ? { duration: 0 } : { duration: 0.35, ease: SWAP_EASE };
+  const alt = formatPhotoAlt({
+    caption: image.caption,
+    location: image.location,
+    contributorUsername: image.contributorUsername,
+    contributorDisplayName: image.contributorDisplayName,
+    index: image.mediaIndex,
+    total: image.stackSize
+  });
 
   return (
     <div
@@ -73,7 +82,7 @@ export function ExploreReaderHero({
               >
                 <Image
                   src={image.media.src}
-                  alt=""
+                  alt={alt}
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"
                   placeholder="blur"

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ExploreGrid } from "./explore-grid";
 import { ExploreReaderHero } from "./explore-reader-hero";
-import { SiteHeader } from "@/components/site-header";
 import { appendExploreImages } from "@/lib/explore-list";
 import type { ExploreImage, ExplorePage } from "@/lib/types";
 
@@ -229,8 +228,6 @@ export function ExploreReader({
 
   return (
     <div className="explore-reader-shell flex h-full flex-col bg-paper">
-      <SiteHeader />
-
       <div
         ref={scrollRef}
         className="explore-reader min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
@@ -239,7 +236,7 @@ export function ExploreReader({
           type="button"
           onClick={close}
           aria-label="Close"
-          className="fixed right-4 top-[4.75rem] z-30 px-2 py-1 font-sans text-[1.25rem] leading-none text-slate-500 transition-colors duration-300 hover:text-ink md:right-7 md:top-[5rem]"
+          className="ui-close fixed right-4 top-4 z-30 md:right-6 md:top-5"
         >
           ×
         </button>

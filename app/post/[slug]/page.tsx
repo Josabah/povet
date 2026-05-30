@@ -7,6 +7,7 @@ import { MetaLocationIcon, MetaPersonIcon } from "@/components/icons/meta-icons"
 import {
   formatContributor,
   formatPhotographerHandle,
+  formatPostNavLabel,
   formatPublishedAt
 } from "@/lib/format";
 import { formatHashtagLabels } from "@/lib/mood-labels";
@@ -71,7 +72,7 @@ export default async function PostPage({ params }: PageProps) {
                 {post.contributorUsername ? (
                   <Link
                     href={`/photographer/${post.contributorUsername}`}
-                    className="block truncate text-soot transition-colors duration-300 hover:text-slate-700"
+                    className="block truncate text-soot transition-colors duration-300 hover:text-ink"
                   >
                     {photographer}
                   </Link>
@@ -95,7 +96,7 @@ export default async function PostPage({ params }: PageProps) {
                 <MetaLocationIcon className="post-meta__icon" />
                 <Link
                   href={`/location/${slugify(post.location)}`}
-                  className="min-w-0 truncate text-soot transition-colors duration-300 hover:text-slate-700"
+                  className="min-w-0 truncate text-soot transition-colors duration-300 hover:text-ink"
                 >
                   {post.location}
                 </Link>
@@ -123,32 +124,48 @@ export default async function PostPage({ params }: PageProps) {
         ) : null}
       </header>
 
-      <PostGallery media={post.media} />
+      <PostGallery
+        media={post.media}
+        caption={post.caption}
+        location={post.location}
+        contributorUsername={post.contributorUsername}
+        contributorDisplayName={post.contributorDisplayName}
+      />
 
       {(previous || next) && (
         <nav
-          className="mt-20 flex items-center justify-between text-[0.88rem] text-slate-400"
+          className="mt-20 flex items-center justify-between"
           aria-label="Neighbouring posts"
         >
           {previous ? (
             <Link
               href={`/post/${previous.slug}`}
-              className="transition-colors duration-300 hover:text-ink"
+              aria-label={`Previous post: ${formatPostNavLabel(
+                previous.location,
+                previous.contributorUsername,
+                previous.contributorDisplayName
+              )}`}
+              className="ui-step"
             >
               ←
             </Link>
           ) : (
-            <span />
+            <span aria-hidden className="min-w-[2.75rem]" />
           )}
           {next ? (
             <Link
               href={`/post/${next.slug}`}
-              className="transition-colors duration-300 hover:text-ink"
+              aria-label={`Next post: ${formatPostNavLabel(
+                next.location,
+                next.contributorUsername,
+                next.contributorDisplayName
+              )}`}
+              className="ui-step"
             >
               →
             </Link>
           ) : (
-            <span />
+            <span aria-hidden className="min-w-[2.75rem]" />
           )}
         </nav>
       )}
