@@ -94,9 +94,8 @@ tooling — without being trapped by Telegram's API or UX.
 ### Deployment
 
 - **Vercel** for the frontend
-- **Supabase / Railway / Neon** for Postgres (final pick deferred until
-  Phase 3; all three are viable)
-- **Cloudflare R2** for images
+- **Neon** for Postgres (pooled `DATABASE_URL` + non-pooled `DIRECT_URL`)
+- **Cloudflare R2** for images (`media.pov.et` in production)
 
 ### Image optimization
 
@@ -331,6 +330,8 @@ Avoid:
 | Route                 | Strategy                          |
 | --------------------- | --------------------------------- |
 | `/`                   | ISR every few minutes             |
+| `/explore`            | ISR + client infinite scroll      |
+| `/explore/image/[id]` | ISR + parallel modal slot         |
 | `/post/[slug]`        | Static (regenerate on sync)       |
 | `/location/[slug]`    | ISR                               |
 | `/photographer/[u]`   | ISR                               |
@@ -421,7 +422,11 @@ Add these only when manual workflow stops scaling.
 
 ## API design
 
-Internal-only at first. Next.js Route Handlers consumed by Server Components.
+Internal-only. Next.js Route Handlers consumed by Server Components and
+the Explore client grid:
+
+- `GET /api/explore` — cursor-paginated flattened image stream
+- `GET /api/explore/neighbors` — reader window around a single image id
 
 Do not ship a public REST or GraphQL API in V1. The website is the API.
 
@@ -451,31 +456,30 @@ architecture.
 
 ---
 
-## Repository layout (proposed)
+## Repository layout
 
 ```
 pov.et/
-├─ apps/
-│  └─ web/                Next.js App Router site
-│     ├─ app/
-│     ├─ components/
-│     ├─ lib/
-│     └─ public/
-├─ packages/
-│  ├─ db/                 Prisma schema + client
-│  ├─ telegram-sync/      GramJS-based sync worker
-│  └─ ui/                 (optional) shared design primitives
+├─ app/                   Next.js App Router (pages, API routes, OG, RSS)
+│  ├─ explore/           Image wall + intercepting modal reader
+│  └─ api/explore/       Cursor-paginated explore JSON
+├─ components/           UI (feed, explore, lightbox, chrome)
+├─ lib/                  Data access, Telegram sync, storage, explore
+│  └─ telegram/          Parser, grouper, media pipeline, sync orchestrator
+├─ prisma/               Schema + migrations
+├─ scripts/              Bootstrap, seed, Telegram login/sync, repairs
+├─ tests/                Unit tests (parser, groups, explore, storage)
+├─ public/mock/          Checked-in dev photographs (no-DB fallback)
+├─ .github/workflows/    Telegram sync cron
 ├─ ARCHITECTURE.md
 ├─ PRODUCT.md
 ├─ ROADMAP.md
 └─ README.md
 ```
 
-A monorepo is not strictly required for V1. A single Next.js app with a
-`lib/db` and `scripts/sync` directory is acceptable until the sync worker
-needs its own deployment.
-
-The split above is the **target shape**; we can adopt it lazily.
+A single Next.js app with co-located sync scripts is the current shape.
+Split into a monorepo only if the sync worker needs its own deployment
+lifecycle.
 
 ---
 

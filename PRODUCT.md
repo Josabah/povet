@@ -1,6 +1,6 @@
 # pov.et — Product Brief
 
-> *Ethiopia seen softly.*
+> *Archive of everyday Ethiopian life.*
 
 This document describes **what pov.et is**, how it should feel, and the
 principles that govern every product decision. It is the soul of the project.
@@ -10,8 +10,8 @@ Read this before writing code. Re-read it when in doubt.
 
 ## What this is
 
-pov.et is a **quiet digital archive** of everyday Ethiopian life captured
-through phone photography.
+pov.et is a **quiet archive** of everyday Ethiopian life, captured through
+phone photography.
 
 The project already exists as:
 
@@ -217,6 +217,8 @@ No paraphrasing, no AI rewriting, no "engagement-optimized" titles.
 | Route                       | Purpose                                |
 | --------------------------- | -------------------------------------- |
 | `/`                         | Main immersive feed                    |
+| `/explore`                  | Flattened image wall — every photograph as its own canvas |
+| `/explore/image/[id]`       | Full-page reader for a single photograph |
 | `/post/[slug]`              | Single post experience                 |
 | `/location/[slug]`          | Location-specific archive              |
 | `/photographer/[username]`  | Contributor archive                    |
@@ -254,6 +256,25 @@ Avoid:
 - boxed layouts
 
 Images should breathe.
+
+---
+
+## Explore design
+
+Explore is a second entry point into the same archive — not a different
+product. Where the homepage groups photographs into posts, Explore
+flattens the stream: **one photograph, one quiet canvas**.
+
+Behavior:
+
+- infinite scroll through every image in the archive
+- masonry columns that breathe (variable sizing, no rigid cards)
+- intercepting modal routes so opening a photo does not lose scroll position
+- a fullscreen reader with keyboard navigation and soft transitions
+- the same editorial restraint — no counters, no social density
+
+Explore should feel like wandering a wall in a slow gallery, not browsing
+a grid of thumbnails.
 
 ---
 

@@ -3,6 +3,7 @@ node_modules
 out
 .env
 .env.local
+.env*.local
 .DS_Store
 *.log
 .vercel
@@ -10,7 +11,10 @@ out
 tsconfig.tsbuildinfo
 /prisma/.env
 
-# Phase 4 sync writes synced photographs here. Locally we keep them on
-# disk; in production this will be replaced by Cloudflare R2 (Phase 5).
+# Local Telegram sync output (production serves media from Cloudflare R2)
 /public/media/
+
+# Editor / agent tooling (not part of the app)
 .agents
+.impeccable
+skills-lock.json

@@ -29,9 +29,10 @@ acceptable for the first several iterations. The aesthetic browsing experience
 
 ## Where we are
 
-**Phases 1–5 live in production.** The archive runs on Vercel against
-Neon Postgres, with images served from Cloudflare R2 and the channel
-syncing every 20 minutes via GitHub Actions.
+**Phases 1–5 and Explore are live in production** at [pov.et](https://pov.et).
+The archive runs on Vercel against Neon Postgres, with images served from
+Cloudflare R2 (`media.pov.et`) and the channel syncing every 20 minutes via
+GitHub Actions.
 
 **Next up: Phase 6 — Editorial tooling.** The owner needs a quiet, locked
 admin route to toggle `featured` / `status` and assign mood tags without
@@ -39,14 +40,13 @@ touching the database directly.
 
 ---
 
-## Phase 0 — Documentation & alignment
+## Phase 0 — Documentation & alignment ✅
 
 - [x] `PRODUCT.md`
 - [x] `ARCHITECTURE.md`
 - [x] `ROADMAP.md`
 - [x] `README.md`
-- [ ] Confirm remaining open questions with the team
-      (see `README.md` § Open questions)
+- [ ] Remaining product open questions (see `README.md` § Open questions)
 
 ---
 
@@ -89,18 +89,20 @@ The goal of this phase: when someone opens the site for the first time, they
 
 ---
 
-## Phase 2 — Location & contributor pages
+## Phase 2 — Location & contributor pages ✅
+
+### What landed
 
 - `/location/[slug]` and `/photographer/[username]` routes
-- Aggregation by location and contributor from the same mock dataset
+- Aggregation by location and contributor from the same data layer
 - Filter / chrome remains minimal — these pages are **emotional maps**, not
   search results
 - Sort defaults: chronological, newest first
 
 ### Done when
 
-- A location page feels like a place, not a query result.
-- A contributor page feels like an author's portfolio, not a profile.
+- A location page feels like a place, not a query result. ✅
+- A contributor page feels like an author's portfolio, not a profile. ✅
 
 ---
 
@@ -147,6 +149,33 @@ Quiet additions that amplify the archive without changing the experience.
 - Post pages already use their cover photograph as the Open Graph image
   via `generateMetadata` — no wordmark overlay; the photograph IS the
   message when shared
+
+---
+
+## Explore ✅
+
+A second discovery surface — every photograph as its own canvas, without
+changing the post-centric feed.
+
+### What landed
+
+- `/explore` — flattened image wall with CSS-column masonry and infinite
+  scroll (SSR first page + `/api/explore` cursor pagination)
+- `/explore/image/[id]` — full-page reader with keyboard navigation
+- Parallel `@modal` slot — intercepting routes preserve grid scroll position
+- `lib/explore.ts`, `lib/explore-list.ts`, `lib/explore-pagination.ts` —
+  Prisma-first with mock fallback, same pattern as `lib/posts.ts`
+- `GET /api/explore` and `GET /api/explore/neighbors` for client pagination
+  and reader windows
+- Explore included in `/sitemap.xml`; linked from site header
+- Unit tests for pagination and list helpers (41 tests total, all green)
+
+### Done when
+
+- Opening Explore feels like wandering a quiet gallery wall, not a thumbnail
+  grid. ✅
+- Infinite scroll is smooth on mobile and desktop. ✅
+- Opening a photo and going back preserves scroll position. ✅
 
 ---
 
