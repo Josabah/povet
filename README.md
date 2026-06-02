@@ -297,5 +297,10 @@ For local R2 setup, see `.env.example` and the Cloudflare dashboard
 
 ## License
 
-TBD. The archive content is contributor-owned; the website code's license is
-a decision for later.
+The **website source code** in this repository is released under the
+[MIT License](./LICENSE).
+
+**Photographs and captions** in the archive remain the property of their
+respective contributors. The mock dataset and synced channel content are
+included for development and presentation only — not as a grant of reuse
+rights.
