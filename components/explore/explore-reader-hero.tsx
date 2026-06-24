@@ -94,10 +94,10 @@ export function ExploreReaderHero({
                 initial={
                   isFirst
                     ? false
-                    : (d: number) => ({
-                        x: `${d > 0 ? "" : "-"}${SLIDE_OFFSET}`,
+                    : {
+                        x: `${direction > 0 ? "" : "-"}${SLIDE_OFFSET}`,
                         opacity: 0
-                      })
+                      }
                 }
                 animate={{ x: 0, opacity: 1 }}
                 exit={(d: number) => ({
