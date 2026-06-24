@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useRef } from "react";
 
 import { ExploreReaderMeta } from "./explore-reader-meta";
 import { ExploreReaderMetaSide } from "./explore-reader-meta-side";
@@ -15,9 +16,12 @@ type Props = {
   hasNext: boolean;
   onPrev: () => void;
   onNext: () => void;
+  /** 1 = next (slide left), -1 = previous (slide right). */
+  direction?: 1 | -1;
 };
 
 const SWAP_EASE = [0.22, 0.61, 0.36, 1] as const;
+const SLIDE_OFFSET = "40%";
 
 /**
  * One photograph at the top of the reader. Responsive shape:
@@ -32,11 +36,18 @@ export function ExploreReaderHero({
   hasPrevious,
   hasNext,
   onPrev,
-  onNext
+  onNext,
+  direction = 1
 }: Props) {
   const reduce = useReducedMotion();
+  const isFirstImage = useRef(true);
+  const isFirst = isFirstImage.current;
+  if (isFirstImage.current) isFirstImage.current = false;
+
   const aspectRatio = clampExploreAspectRatio(image.media.aspectRatio);
-  const swap = reduce ? { duration: 0 } : { duration: 0.35, ease: SWAP_EASE };
+  const swap = reduce
+    ? { duration: 0 }
+    : { duration: 0.18, ease: SWAP_EASE };
   const alt = formatPhotoAlt({
     caption: image.caption,
     location: image.location,
@@ -71,13 +82,28 @@ export function ExploreReaderHero({
               backgroundColor: image.media.dominantColor
             }}
           >
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence
+              mode="popLayout"
+              initial={false}
+              custom={direction}
+            >
               <motion.div
                 key={image.id}
                 className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                custom={direction}
+                initial={
+                  isFirst
+                    ? false
+                    : (d: number) => ({
+                        x: `${d > 0 ? "" : "-"}${SLIDE_OFFSET}`,
+                        opacity: 0
+                      })
+                }
+                animate={{ x: 0, opacity: 1 }}
+                exit={(d: number) => ({
+                  x: `${d > 0 ? "-" : ""}${SLIDE_OFFSET}`,
+                  opacity: 0
+                })}
                 transition={swap}
               >
                 <Image
@@ -85,8 +111,12 @@ export function ExploreReaderHero({
                   alt={alt}
                   fill
                   sizes="(max-width: 768px) 100vw, 60vw"
-                  placeholder="blur"
-                  blurDataURL={image.media.blurDataURL}
+                  {...(isFirst
+                    ? {
+                        placeholder: "blur" as const,
+                        blurDataURL: image.media.blurDataURL
+                      }
+                    : {})}
                   className="object-contain"
                   priority
                 />
@@ -95,10 +125,10 @@ export function ExploreReaderHero({
           </div>
 
           <div className="explore-hero__meta md:hidden">
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={image.id}
-                initial={{ opacity: 0 }}
+                initial={isFirst ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={swap}
@@ -122,10 +152,10 @@ export function ExploreReaderHero({
       </div>
 
       <aside className="explore-hero__sidebar hidden md:block">
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={image.id}
-            initial={{ opacity: 0 }}
+            initial={isFirst ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={swap}

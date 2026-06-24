@@ -131,8 +131,6 @@ export function Lightbox({
                   })}
                   fill
                   sizes="100vw"
-                  placeholder="blur"
-                  blurDataURL={current.blurDataURL}
                   className="object-contain"
                   priority
                 />

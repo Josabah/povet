@@ -11,6 +11,8 @@ type Props = {
   imageClassName?: string;
   /** Explore grid uses tighter ratio clamps for uniform rhythm. */
   variant?: "archive" | "explore";
+  /** Skip the blur placeholder (useful when the image is already cached). */
+  skipBlur?: boolean;
 };
 
 /**
@@ -22,10 +24,16 @@ export function MasonryFrame({
   priority = false,
   className = "",
   imageClassName = "object-cover transition-transform duration-[1200ms] ease-quiet group-hover:scale-[1.01] motion-reduce:transform-none",
-  variant = "archive"
+  variant = "archive",
+  skipBlur = false
 }: Props) {
   const clamp =
     variant === "explore" ? clampExploreAspectRatio : clampAspectRatio;
+
+  const blurProps =
+    skipBlur || !media.blurDataURL
+      ? {}
+      : { placeholder: "blur" as const, blurDataURL: media.blurDataURL };
 
   return (
     <div
@@ -40,8 +48,7 @@ export function MasonryFrame({
         alt=""
         fill
         sizes={sizes}
-        placeholder="blur"
-        blurDataURL={media.blurDataURL}
+        {...blurProps}
         priority={priority}
         className={imageClassName}
       />

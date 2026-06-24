@@ -62,6 +62,7 @@ export function ExploreReader({
   const [current, setCurrent] = useState(initialImage);
   const [previous, setPrevious] = useState(initialPrevious);
   const [next, setNext] = useState(initialNext);
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const [wall, setWall] = useState<WallState>({
     images: initialWall,
     cursor: initialWallCursor
@@ -157,11 +158,17 @@ export function ExploreReader({
   );
 
   const goPrev = useCallback(() => {
-    if (previous) swapTo(previous);
+    if (previous) {
+      setSlideDirection(-1);
+      swapTo(previous);
+    }
   }, [previous, swapTo]);
 
   const goNext = useCallback(() => {
-    if (next) swapTo(next);
+    if (next) {
+      setSlideDirection(1);
+      swapTo(next);
+    }
   }, [next, swapTo]);
 
   // ── Body scroll lock — modal scrolls internally
@@ -253,6 +260,7 @@ export function ExploreReader({
             hasNext={next !== null}
             onPrev={goPrev}
             onNext={goNext}
+            direction={slideDirection}
           />
         </section>
 

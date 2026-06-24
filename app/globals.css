@@ -328,6 +328,7 @@
   .explore-hero__image {
     width: 100%;
     max-height: var(--reader-max-h);
+    overflow: hidden;
   }
 
   /* Subtle edge buttons — visible affordance for "click next or back"
