@@ -18,7 +18,8 @@ type Props = {
   contributorDisplayName?: string | null;
 };
 
-const fade = { duration: 0.5, ease: [0.22, 0.61, 0.36, 1] as const };
+const EASE = [0.22, 0.61, 0.36, 1] as const;
+const SLIDE_OFFSET = "40%";
 
 export function Lightbox({
   media,
@@ -31,6 +32,7 @@ export function Lightbox({
   contributorDisplayName = null
 }: Props) {
   const [index, setIndex] = useState(initialIndex);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const touchStartX = useRef<number | null>(null);
   const reduce = useReducedMotion();
 
@@ -39,10 +41,12 @@ export function Lightbox({
   }, [open, initialIndex]);
 
   const goPrev = useCallback(() => {
+    setDirection(-1);
     setIndex((i) => (i - 1 + media.length) % media.length);
   }, [media.length]);
 
   const goNext = useCallback(() => {
+    setDirection(1);
     setIndex((i) => (i + 1) % media.length);
   }, [media.length]);
 
@@ -75,7 +79,8 @@ export function Lightbox({
   };
 
   const current = media[index];
-  const transition = reduce ? { duration: 0 } : fade;
+  const shellTransition = reduce ? { duration: 0 } : { duration: 0.3, ease: EASE };
+  const swap = reduce ? { duration: 0 } : { duration: 0.18, ease: EASE };
 
   return (
     <AnimatePresence>
@@ -85,7 +90,7 @@ export function Lightbox({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={transition}
+          transition={shellTransition}
           role="dialog"
           aria-modal="true"
           aria-label="Photograph viewer"
@@ -105,19 +110,25 @@ export function Lightbox({
           </button>
 
           <div
-            className="relative flex flex-1 items-center justify-center px-3 py-10 md:px-12 md:py-14"
+            className="relative flex flex-1 items-center justify-center overflow-hidden px-3 py-10 md:px-12 md:py-14"
             onClick={(e) => {
               if (e.target === e.currentTarget) onClose();
             }}
           >
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={current.src}
                 className="relative h-full w-full max-h-[88vh]"
-                initial={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: reduce ? 1 : 0.985 }}
-                transition={transition}
+                initial={{
+                  x: `${direction > 0 ? "" : "-"}${SLIDE_OFFSET}`,
+                  opacity: 0
+                }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{
+                  x: `${direction > 0 ? "-" : ""}${SLIDE_OFFSET}`,
+                  opacity: 0
+                }}
+                transition={swap}
               >
                 <Image
                   src={current.src}
