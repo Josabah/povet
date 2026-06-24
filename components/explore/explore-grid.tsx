@@ -77,6 +77,7 @@ export function ExploreGrid({
     createExploreColumns(initialDeduped, initialColumnCount)
   );
   const [cursor, setCursor] = useState<string | null>(initialCursor);
+  const [fetching, setFetching] = useState(false);
   const gridRef = useRef<HTMLElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
@@ -134,6 +135,7 @@ export function ExploreGrid({
     if (fetchedCursorsRef.current.has(nextCursor)) return false;
 
     loadingRef.current = true;
+    setFetching(true);
     try {
       const res = await fetch(
         `/api/explore?cursor=${encodeURIComponent(nextCursor)}&limit=${pageSize}`
@@ -159,6 +161,7 @@ export function ExploreGrid({
       return newImages.length > 0;
     } finally {
       loadingRef.current = false;
+      setFetching(false);
     }
   }, [onPaginate, pageSize]);
 
@@ -216,7 +219,20 @@ export function ExploreGrid({
         ))}
       </section>
       {cursor ? (
-        <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+        <>
+          <div
+            className="flex items-center justify-center py-10 transition-opacity duration-300"
+            style={{ opacity: fetching ? 1 : 0 }}
+            aria-hidden={!fetching}
+          >
+            <div className="flex gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-[pulse_1.4s_ease-in-out_infinite]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-[pulse_1.4s_ease-in-out_0.2s_infinite]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-[pulse_1.4s_ease-in-out_0.4s_infinite]" />
+            </div>
+          </div>
+          <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+        </>
       ) : null}
     </>
   );
