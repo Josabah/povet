@@ -100,10 +100,10 @@ export function ExploreReaderHero({
                       }
                 }
                 animate={{ x: 0, opacity: 1 }}
-                exit={(d: number) => ({
-                  x: `${d > 0 ? "-" : ""}${SLIDE_OFFSET}`,
+                exit={{
+                  x: `${direction > 0 ? "-" : ""}${SLIDE_OFFSET}`,
                   opacity: 0
-                })}
+                }}
                 transition={swap}
               >
                 <Image
