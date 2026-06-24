@@ -24,7 +24,10 @@ if (process.env.R2_PUBLIC_URL) {
 const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns
+    remotePatterns,
+    // R2 already serves optimized JPEGs. In local dev, skip `/_next/image`
+    // so a grid of 32+ tiles does not hit Next.js's hard 7s fetch timeout.
+    unoptimized: process.env.NODE_ENV === "development"
   },
   experimental: {
     optimizePackageImports: ["framer-motion"]
